@@ -1,0 +1,4 @@
+.env
+./node_modules
+./stuhub-36067-firebase-adminsdk-xor75-e02a643b9e.json
+./package-lock.json
