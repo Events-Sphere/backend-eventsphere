@@ -1,38 +1,54 @@
-import { EventInterface } from "../../Interfaces/eventInterface";
+import { EventInterface, MainEventInterface, SubEventInterface } from "../../Interfaces/eventInterface";
 import db from "../../Config/knex";
 
 export class EventClass {
   createEvent = async (
-    eventData: EventInterface,
-    filePathsArray: any
-  ) : Promise<{}> => {
+    mainEventData: MainEventInterface,
+    subEventData: any[]
+  ): Promise<{ status: boolean; data: any }> => {
     return new Promise(async (resolve, reject) => {
       try {
-        const [eventId] = await db("events").insert(eventData, ["_id"]);
-        const subEventValues = eventData.sub_events.map(
-          (subEvent: any, index: number) => ({
-            event_id: eventId,
-            name: subEvent.name,
-            description: subEvent.description,
-            images: JSON.stringify(filePathsArray[index + 2]),
-            video_url: subEvent.video_url || null,
-            start_date: subEvent.start_date,
-            start_time: subEvent.start_time,
-            end_time: subEvent.end_time,
-            host_name: subEvent.host_name,
-            country_code: subEvent.country_code,
-            host_mobile: subEvent.host_mobile,
-            host_email: subEvent.host_email,
-            ticket_type: subEvent.ticket_type,
-            ticket_price: subEvent.ticket_price,
-            ticket_qty: subEvent.ticket_qty,
-          })
-        );
-       const response = await db("sub_events").insert(subEventValues);
-       resolve({ status:true, response : response});
-      } catch {
-        reject({status:false , response:null});
+        const [eventId] = await db("events").insert(mainEventData);
+       for(let subEvent in subEventData){
+           await db("sub_events").insert(subEvent);
+        }
+        resolve({ status: true, data: eventId});
+      } catch (error) {
+        console.error("Error creating event:", error);
+        reject({ status: false, data: null });
       }
     });
   };
+
+  updatePendingEvents = async (
+    orgId: any,
+    currentEvents: any[]
+  ): Promise<{ status: boolean; data: any }> => {
+    try {
+      const [{ events_counts, pending_events }] = await db
+        .select("events_counts", "pending_events")
+        .from("organizations")
+        .where("_id", "=", orgId);
+
+      const totalCount = Number.parseInt(events_counts) + 1;
+      const updatedPendingEvents = pending_events.filter(
+        (event: any) => !currentEvents.includes(event)
+      );
+
+      await db("organizations")
+        .where("_id", "=", orgId)
+        .update({
+          events_counts: totalCount,
+          pending_events: JSON.stringify(updatedPendingEvents),
+        });
+
+      return { status: true, data: { totalCount, updatedPendingEvents } };
+    } catch (error) {
+      console.error("Error updating pending events:", error);
+      return { status: false, data: null };
+    }
+  };
+
+
 }
+
