@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import serviceAccount from "../../stuhub-36067-firebase-adminsdk-xor75-e02a643b9e.json";
 import * as dotenv from "dotenv";
+
 dotenv.config();
 
 admin.initializeApp({
@@ -11,125 +12,110 @@ admin.initializeApp({
 const storage = admin.storage().bucket();
 
 export class FirebaseStorage {
+  static uploadMainImage = async (
+    file: Express.Multer.File,
+    eventId: number
+  ): Promise<{ status: boolean; url?: string; message?: string }> => {
+    const uniqueFileName = `events/${eventId}/main_${Date.now()}.jpg`;
 
-  static uploadMainImage = async (event: any): Promise<{status:boolean , url?:any , urls?:any , message?:string}> => {
-  
-  const uniqueMainImageName = `events/${
-    event._id
-  }/main_image_${Date.now()}.jpg`;
+    try {
+      const firebaseFile = storage.file(uniqueFileName);
 
-  try {
-    await storage.upload(event.main_image.path, {
-      destination: uniqueMainImageName,
-      public: true,
-      metadata: {
-        cacheControl: "public, max-age=31536000",
-      },
-    });
+      await firebaseFile.save(file.buffer, {
+        public: true,
+        metadata: {
+          contentType: file.mimetype,
+          cacheControl: "public, max-age=31536000",
+        },
+      });
 
-    const file = storage.file(uniqueMainImageName);
-    const [url] = await file.getSignedUrl({
-      action: "read",
-      expires: "03-09-2030",
-    });
-    return { status: true, url: url };
-  } catch (error) {
-    console.log("Error : uploading main event image :"+error);
-    return { status: false, url: null };
-  }
+      const [url] = await firebaseFile.getSignedUrl({
+        action: "read",
+        expires: "03-09-2030",
+      });
 
-};
+      return { status: true, url : uniqueFileName };
+    } catch (error) {
+      console.error(`Error uploading main event image for event ${eventId}:`, error);
+      return { status: false, message: "Failed to upload main image" };
+    }
+  };
 
-static uploadCoverImages = async (event: any): Promise<{status:boolean , url?:any , urls?:any , message?:string}> => {
-  const coverImages = JSON.parse(event.cover_images || "[]");
-
-  if (coverImages.length === 0) {
-    return {status: false , urls:null};
-  }
-
-  const images: { filePath: string; destinationPath: string }[] = coverImages.map((image: string, index: number) => {
-    const uniqueCoverImageName = `events/${
-      event._id
-    }/cover_images/cover_${index}_${Date.now()}.jpg`;
-    return { filePath: image, destinationPath: uniqueCoverImageName };
-  });
-
-  try {
-
-     const imageUrls : string[] = [];
-
-     await Promise.all(
-      images.map(async (image) => {
-        const { filePath, destinationPath } = image;
-        try {
-           await storage.upload(filePath, {
-            destination: destinationPath,
-            public: true,
-            metadata: {
-              cacheControl: "public, max-age=31536000",
-            },
-          });
-      
-          const file = storage.file(destinationPath);
-          const [url] = await file.getSignedUrl({
-            action: "read",
-            expires: "03-09-2030",
-          });
-          imageUrls.push(url);
-        } catch (error) {
-            return {status : false , message:"something went wrong try again"};
-        }
-      })
-    );
-
-    return { status: true, urls:imageUrls };
-
-  } catch (error) {
-    return { status: false, urls: null };
-  }
-};
-
- static uploadSubEventCoverImages = async (event: any): Promise<{status:boolean , url?:any , urls?:any , message?:string}> => {
-  if (!Array.isArray(event.sub_events)) {
-    return {status:false , urls:null};
-  }
-
-  const subEventUrls: string[][] = [];
-
-  for (const subEvent of event.sub_events) {
-    if (Array.isArray(subEvent.cover_images)) {
+  static uploadCoverImages = async (
+    files: Express.Multer.File[],
+    eventId: number
+  ): Promise<{ status: boolean; urls?: string[]; message?: string }> => {
+    try {
       const urls: string[] = [];
 
-      for (let imageIndex = 0; imageIndex < subEvent.cover_images.length; imageIndex++) {
-        const image = subEvent.cover_images[imageIndex];
-        const uniqueSubEventImageName = `events/${event._id}/sub_events/${subEvent._id}/cover_${imageIndex}_${Date.now()}.jpg`;
+      await Promise.all(
+        files.map(async (file, index) => {
+          const uniqueFileName = `events/${eventId}/coverImages/cover_${index}_${Date.now()}.jpg`;
 
-        try {
-          await storage.upload(image, {
-            destination: uniqueSubEventImageName,
+          const firebaseFile = storage.file(uniqueFileName);
+
+          await firebaseFile.save(file.buffer, {
             public: true,
             metadata: {
+              contentType: file.mimetype,
               cacheControl: "public, max-age=31536000",
             },
           });
 
-          const file = storage.file(uniqueSubEventImageName);
-          const [url] = await file.getSignedUrl({
+          const [url] = await firebaseFile.getSignedUrl({
             action: "read",
             expires: "03-09-2030",
           });
 
-          urls.push(url);
-        } catch (error) {
-          return {status : false , message: `Failed to upload sub-event image for sub_event_id ${subEvent._id}:`};
-        }
-      }
-      subEventUrls.push(urls);
-    } else {
-       return {status : false, urls:null};
-    }
-  }
-  return {status : true , urls : subEventUrls};
-};
+          urls.push(uniqueFileName);
+        })
+      );
 
-};
+      return { status: true, urls };
+    } catch (error) {
+      console.error(`Error uploading cover images for event ${eventId}:`, error);
+      return { status: false, message: "Failed to upload cover images" };
+    }
+  };
+
+  static uploadSubEventCoverImages = async (
+    files: Express.Multer.File[],
+    eventId: number,
+    subEventId: number
+  ): Promise<{ status: boolean; urls?: string[]; message?: string }> => {
+    try {
+      const urls: string[] = [];
+
+      await Promise.all(
+        files.map(async (file, index) => {
+          const uniqueFileName = `events/${eventId}/subevents/${subEventId}/cover_${index}_${Date.now()}.jpg`;
+
+          const firebaseFile = storage.file(uniqueFileName);
+
+          await firebaseFile.save(file.buffer, {
+            public: true,
+            metadata: {
+              contentType: file.mimetype,
+              cacheControl: "public, max-age=31536000",
+            },
+          });
+
+          const [url] = await firebaseFile.getSignedUrl({
+            action: "read",
+            expires: "03-09-2030",
+          });
+
+          urls.push(uniqueFileName);
+        })
+      );
+
+      return { status: true, urls };
+    } catch (error) {
+      console.error(
+        `Error uploading sub-event cover images for event ${eventId}, sub-event ${subEventId}:`,
+        error
+      );
+      return { status: false, message: "Failed to upload sub-event cover images" };
+    }
+  };
+}

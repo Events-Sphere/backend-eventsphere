@@ -4,15 +4,17 @@ import db from "../../Config/knex";
 export class EventClass {
   createEvent = async (
     mainEventData: MainEventInterface,
-    subEventData: any[]
+    subEventData: SubEventInterface[]
   ): Promise<{ status: boolean; data: any }> => {
     return new Promise(async (resolve, reject) => {
       try {
         const [eventId] = await db("events").insert(mainEventData);
-       for(let subEvent in subEventData){
-           await db("sub_events").insert(subEvent);
+        for(let subEvent of subEventData){
+          subEvent.event_id = eventId; 
+          console.log(subEvent); 
+           await db("subevents").insert(subEvent);
         }
-        resolve({ status: true, data: eventId});
+          resolve({ status: true, data: eventId});
       } catch (error) {
         console.error("Error creating event:", error);
         reject({ status: false, data: null });
