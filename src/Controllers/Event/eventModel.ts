@@ -7,7 +7,7 @@ import {
 } from "../../Interfaces/eventInterface";
 import { EventClass } from "./eventClass";
 import { FirebaseStorage } from "../../Services/Storage";
-import moment from 'moment';
+import moment from "moment";
 import { Multer } from "multer";
 import { categoryInterface } from "../../Interfaces/categoryInterface";
 
@@ -63,7 +63,7 @@ const isValidSubEventData = (subEvent: any): subEvent is SubEventInterface => {
     "description",
     "start_time",
     "end_time",
-    "starting_data",
+    "starting_date",
     "hostedBy",
     "host_email",
     "host_mobile",
@@ -72,9 +72,6 @@ const isValidSubEventData = (subEvent: any): subEvent is SubEventInterface => {
     "ticket_sold",
     "ticket_type",
     "ticket_price",
-    "earnings",
-    "approvedBy",
-    "approvedAt",
     "restrictions",
   ];
 
@@ -128,7 +125,6 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
     const data: EventInterface = JSON.parse(req.body.data);
 
-
     if (!isValidEventData(data)) {
       return ApiResponseHandler.error(res, "Invalid event data provided.", 401);
     }
@@ -161,7 +157,10 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     }
 
     const imgUploadedResponse: FileStorageResponse =
-      await FirebaseStorage.uploadSingleImage( `events/${data._id}` , mainImgFile);
+      await FirebaseStorage.uploadSingleImage(
+        `events/${data._id}`,
+        mainImgFile
+      );
     if (imgUploadedResponse.status === false) {
       return ApiResponseHandler.error(
         res,
@@ -172,7 +171,10 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     }
 
     const coverImgUploadedResponse: FileStorageResponse =
-      await FirebaseStorage.uploadCoverImages(`events/${data._id}/coverImages`,coverImgFiles);
+      await FirebaseStorage.uploadCoverImages(
+        `events/${data._id}/coverImages`,
+        coverImgFiles
+      );
     if (coverImgUploadedResponse.status === false) {
       return ApiResponseHandler.error(
         res,
@@ -182,10 +184,10 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     }
 
     const subEventIds: any[] = [];
-    const subEventsData : SubEventInterface[] = [];
+    const subEventsData: SubEventInterface[] = [];
 
     let idx = 0;
-    for(let subEvent of data.sub_events){
+    for (let subEvent of data.sub_events) {
       if (!isValidSubEventData(subEvent)) {
         return ApiResponseHandler.error(
           res,
@@ -194,14 +196,18 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
         );
       }
 
-
       subEventIds.push(subEvent._id);
       const subCoverGroupKey = `sub_cover_images${idx + 1}`;
-      idx+=1;
+      idx += 1;
 
       const subEventCoverImgFile = imageList.sub_cover_images[subCoverGroupKey];
 
-      const coverImgUploadedResponse: FileStorageResponse = await FirebaseStorage.uploadSubEventCoverImages(subEventCoverImgFile, data._id, subEvent._id);
+      const coverImgUploadedResponse: FileStorageResponse =
+        await FirebaseStorage.uploadSubEventCoverImages(
+          subEventCoverImgFile,
+          data._id,
+          subEvent._id
+        );
       if (coverImgUploadedResponse.status === false) {
         return ApiResponseHandler.error(
           res,
@@ -238,10 +244,9 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       subEventsData.push(subevent);
     }
 
-
-    subEventsData.map((d)=>{
+    subEventsData.map((d) => {
       console.log(d);
-    })
+    });
 
     const mainEvents = {
       _id: data._id,
@@ -304,73 +309,224 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
   }
 };
 
-export const createCategory = async(req : Request , res : Response)=>{
+export const createCategory = async (req: Request, res: Response) => {
+  try {
+    if (!req.body.name || !req.body.file) {
+      return ApiResponseHandler.error(
+        res,
+        "Missing required data in the request. Please provide the necessary category information.",
+        400
+      );
+    }
 
-try{
+    const categoryName = req.body.name;
+    const categoryImageFile = req.body.file;
 
-  if (!req.body.name || !req.body.file) {
-    return ApiResponseHandler.error(
+    if (!categoryName) {
+      return ApiResponseHandler.error(res, "Category name is required.", 400);
+    }
+
+    if (!categoryImageFile) {
+      return ApiResponseHandler.error(res, "Category image is required.", 400);
+    }
+
+    const categoryId = Date.now() + Math.floor(Math.random() * 1000);
+
+    const imgUploadedResponse: FileStorageResponse =
+      await FirebaseStorage.uploadSingleImage(
+        `categories/${categoryId}`,
+        categoryImageFile
+      );
+    if (imgUploadedResponse.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        imgUploadedResponse.message ??
+          "failed to upload main event images. try again!",
+        500
+      );
+    }
+
+    const categoryData: categoryInterface = {
+      _id: categoryId,
+      name: categoryName,
+      image: imgUploadedResponse.url,
+      is_enable: 1,
+    };
+
+    const response: any = await eventInstance.createCategory(categoryData);
+
+    if (response.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        response.message ?? "failed to create category. try after sometime",
+        500
+      );
+    }
+
+    return ApiResponseHandler.success(
       res,
-      "Missing required data in the request. Please provide the necessary category information.",
-      400
+      response.data,
+      "Category created successfully.",
+      200
     );
-  }
-
-  const categoryName = req.body.name;
-  const categoryImageFile = req.body.file;
-
-  
-  if (!categoryName) {
-    return ApiResponseHandler.error(res, "Category name is required.", 400);
-  }
-
-  if (!categoryImageFile) {
-    return ApiResponseHandler.error(res, "Category image is required.", 400);
-  }
-
-  const categoryId = Date.now() + Math.floor(Math.random() * 1000);
-
-  const imgUploadedResponse: FileStorageResponse =
-  await FirebaseStorage.uploadSingleImage( `categories/${categoryId}` , categoryImageFile);
-if (imgUploadedResponse.status === false) {
-  return ApiResponseHandler.error(
-    res,
-    imgUploadedResponse.message ??
-      "failed to upload main event images. try again!",
-    500
-  );
-}
-
-const categoryData : categoryInterface = {
-  _id : categoryId,
-  name : categoryName,
-  image : imgUploadedResponse.url,
-  is_enable : 1,
-};
-
-  const response : any = await eventInstance.createCategory(categoryData);
-
-  if(response.status  === false){
+  } catch (error: any) {
     return ApiResponseHandler.error(
       res,
-      response.message ?? 'failed to create event. try after sometime' ,
+      error.message ?? "internal server error",
       500
     );
   }
+};
 
-  return ApiResponseHandler.success(
-    res,
-    response.data,
-    'Category created successfully.',
-    200
-  );
+export const updateCategoryByID = async (req: Request, res: Response) => {
+  try {
+    if (!req.body.name && !req.body.file) {
+      return ApiResponseHandler.error(
+        res,
+        "Missing required data in the request. Please provide the necessary category information.",
+        400
+      );
+    }
 
+    const bodyData = req.body.data;
+    const categoryImageFile = req.body.file;
 
-}catch(error : any){
-  return ApiResponseHandler.error(
-    res,
-     error.message ?? 'internal server error',
-    500
-  );
- }
-}
+    if (!categoryImageFile) {
+      return ApiResponseHandler.error(res, "Category image is required.", 400);
+    }
+
+    const categoryExists = await eventInstance.getCategoryById(bodyData._id);
+
+    if (!categoryExists) {
+      return ApiResponseHandler.error(res, "Category not exists", 500);
+    }
+
+    let imageUrl = bodyData.image;
+
+    if (req.body.file) {
+      const imgUploadedResponse: FileStorageResponse =
+        await FirebaseStorage.uploadSingleImage(
+          `categories/${bodyData._id}`,
+          categoryImageFile
+        );
+      imageUrl =
+        imgUploadedResponse.status === true
+          ? imgUploadedResponse.url
+          : bodyData.image;
+    }
+
+    const categoryUpdatedData: categoryInterface = {
+      _id: bodyData._id,
+      name: bodyData.name,
+      image: imageUrl,
+      is_enable: bodyData.is_enable ?? 1,
+    };
+
+    const response: any = await eventInstance.updateCategory(
+      categoryUpdatedData
+    );
+
+    if (response.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        response.message ?? "failed to update category. try after sometime",
+        500
+      );
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Category updated successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(
+      res,
+      error.message ?? "internal server error",
+      500
+    );
+  }
+};
+
+export const deteleCategoryByID = async (req: Request, res: Response) => {
+  try {
+    if (!req.body._id) {
+      return ApiResponseHandler.error(res, "missing category key", 400);
+    }
+
+    const categoryExists = await eventInstance.getCategoryById(req.body._id);
+
+    if (!categoryExists.status === false) {
+      return ApiResponseHandler.error(res, "Category not exists", 500);
+    }
+
+    const response: any = await eventInstance.deleteCategoryById(
+      categoryExists.data._id
+    );
+
+    if (response.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        response.message ?? "failed to delete category. Try again!.",
+        500
+      );
+    }
+
+    return ApiResponseHandler.success(res, [], response.message, 200);
+  } catch (error: any) {
+    return ApiResponseHandler.error(
+      res,
+      error.message ?? "internal server error",
+      500
+    );
+  }
+};
+
+export const getCategoryById = async (req: Request, res: Response) => {
+  try {
+    if (!req.body._id) {
+      return ApiResponseHandler.error(res, "Missing category key", 400);
+    }
+
+    const response: any = await eventInstance.getCategoryById(req.body._id);
+
+    if (response.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        `${response.message ?? "Category not exists"}`,
+        500
+      );
+    }
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      response.message,
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(
+      res,
+      error.message ?? "internal server error",
+      500
+    );
+  }
+};
+
+export const getAllCategories = async (req: Request, res: Response) => {
+  try {
+    const response: any = await eventInstance.getAllCategories();
+    return ApiResponseHandler.success(
+      res,
+      response.data ?? [],
+      response.message??'categories list successfully getted.',
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(
+      res,
+      error.message ?? "internal server error",
+      500
+    );
+  }
+};

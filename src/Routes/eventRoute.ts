@@ -13,9 +13,33 @@ router.get("/get-pending-events");
 router.get("/get-completed-events");
 router.get("/get-active-events");
 
-//<---- Event category router----->
-router.post("/category/create" , /* verify admin ,*/ fileUploadInstance.middleware() ,EventModel.createCategory);
-
-
+//<---- Event Category Router ----->
+router.post(
+    "/category/create",
+    /* verify admin, */ fileUploadInstance.middleware(),
+    EventModel.createCategory
+  );
+  
+  router.post(
+    "/category/update",
+    /* verify admin, */ fileUploadInstance.middleware(),
+    EventModel.updateCategoryByID
+  );
+  
+  router.post(
+    "/category/delete",
+    /* verify admin, */ EventModel.deteleCategoryByID
+  );
+  
+  router.post(
+    "/category/get/single",
+    /* verify admin, */ EventModel.getCategoryById 
+  );
+  
+  router.post(
+    "/category/get/all",
+    /* verify admin, */ EventModel.getAllCategories
+  );
+  
 
 export default router;
