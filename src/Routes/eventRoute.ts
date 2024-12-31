@@ -8,7 +8,7 @@ const fileUploadInstance = new FileUploadMiddleware();
 
 //<---- Event router----->
 router.post("/create" ,/*verify organizer or admin ,*/fileUploadInstance.middleware(), EventModel.createEvent);
-router.get("/get-all-events");
+router.post("/update", /* verify admin, */ fileUploadInstance.middleware(),EventModel.updateEvent);
 router.get("/get-pending-events");
 router.get("/get-completed-events");
 router.get("/get-active-events");

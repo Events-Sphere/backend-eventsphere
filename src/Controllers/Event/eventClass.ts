@@ -4,7 +4,8 @@ import {
 } from "../../Interfaces/eventInterface";
 import db from "../../Config/knex";
 import { categoryInterface } from "../../Interfaces/categoryInterface";
-
+import { resolve } from "path";
+import { rejects } from "assert";
 
 export class EventClass {
   createEvent = async (
@@ -27,7 +28,100 @@ export class EventClass {
     });
   };
 
-  updatePendingEvents = async (
+  updateEvent = async (
+    eventId: number,
+    updatedMainEventData: MainEventInterface,
+    updatedSubEvents: SubEventInterface[],
+    subEventIdsToDelete: any,
+    existingSubEventIds: any[],
+    newSubEventIds: any[]
+  ) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        await db.transaction(async (trx) => {
+          await trx("events")
+            .update(updatedMainEventData)
+            .where("_id", "=", eventId);
+
+          for (let subEvent of updatedSubEvents) {
+            const existingSubEvent = await trx("subevents")
+              .select("*")
+              .where("_id", subEvent._id)
+              .first();
+
+            if (existingSubEvent) {
+              await trx("subevents")
+                .update(subEvent)
+                .where("_id", subEvent._id);
+            } else {
+              await trx("subevents").insert(subEvent);
+            }
+          }
+
+          for (let subEventId of subEventIdsToDelete) {
+            await trx("subevents").where("_id", "=", subEventId).del();
+          }
+
+          const allSubEventIds = [
+            ...existingSubEventIds.filter(
+              (id) => !subEventIdsToDelete.includes(id)
+            ),
+            ...newSubEventIds,
+          ];
+          await trx("events")
+            .update({ sub_event_items: JSON.stringify(allSubEventIds) })
+            .where("_id", "=", eventId);
+        });
+        resolve({ status: true, message: "Event updated successfully." });
+      } catch (error) {
+        reject({ status: false, message: "Failed to update event." });
+      }
+    });
+  };
+
+  getEventById = async (
+    eventId: number
+  ): Promise<{ status: boolean; data?: any; message?: string }> => {
+    return new Promise(async (resolve, rejects) => {
+      try {
+        const category = await db
+          .select("*")
+          .from("events")
+          .where("_id", "=", eventId)
+          .first();
+        if (category) {
+          resolve({ status: true, data: category });
+        }
+        resolve({ status: false, message: "Event not exists" });
+      } catch (error) {
+        rejects({ status: false, message: "something went wrong. Try again." });
+      }
+    });
+  };
+
+  createSubEventById = async (
+    eventId: number,
+    subEventData: SubEventInterface
+  ): Promise<{ status: boolean; data?: any; message?: string }> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const [newId] = await db("subevents").insert({
+          ...subEventData,
+          event_id: eventId,
+        });
+
+        if (newId) {
+          resolve({ status: true, data: newId });
+        } else {
+          resolve({ status: false, message: "Failed to create sub-event" });
+        }
+      } catch (error) {
+        reject({ status: false, message: "Something went wrong. Try again." });
+      }
+    });
+  };
+
+  updateOrganizationEventCounts = async (
     orgId: any,
     currentEvents: any[]
   ): Promise<{ status: boolean; data: any }> => {
@@ -82,7 +176,9 @@ export class EventClass {
     });
   };
 
-  getCategoryById = async (categoryId: number): Promise<{status : boolean , data?: any , message?:string}> => {
+  getCategoryById = async (
+    categoryId: number
+  ): Promise<{ status: boolean; data?: any; message?: string }> => {
     return new Promise(async (resolve, rejects) => {
       try {
         const category = await db
@@ -91,28 +187,29 @@ export class EventClass {
           .where("_id", "=", categoryId)
           .first();
         if (category) {
-          resolve({status:true , data : category});
+          resolve({ status: true, data: category });
         }
-        resolve({status : false , message : 'category not exists'});
+        resolve({ status: false, message: "category not exists" });
       } catch (error) {
-        rejects({status : false , message : 'something went wrong. Try again.'});
+        rejects({ status: false, message: "something went wrong. Try again." });
       }
     });
   };
 
-  getAllCategories = async (): Promise<{status : boolean , data?: any , message?:string}> => {
+  getAllCategories = async (): Promise<{
+    status: boolean;
+    data?: any;
+    message?: string;
+  }> => {
     return new Promise(async (resolve, rejects) => {
       try {
-        const category = await db
-          .select("*")
-          .from("categories");
+        const category = await db.select("*").from("categories");
         if (category) {
-          resolve({status:true , data : category});
+          resolve({ status: true, data: category });
         }
-          resolve({status:true , message: 'categori list is empty'});
-        
+        resolve({ status: true, message: "categori list is empty" });
       } catch (error) {
-        rejects({status : false , message : 'something went wrong. Try again.'});
+        rejects({ status: false, message: "something went wrong. Try again." });
       }
     });
   };
@@ -134,7 +231,7 @@ export class EventClass {
 
   deleteCategoryById = async (
     _id: number
-  ): Promise<{ status: boolean; message? : string }> => {
+  ): Promise<{ status: boolean; message?: string }> => {
     try {
       const result = await db("categories").where("_id", "=", _id).delete();
 
