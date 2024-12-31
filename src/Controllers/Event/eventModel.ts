@@ -92,6 +92,7 @@ const eventInstance = new EventClass();
 
 export const createEvent = async (req: Request, res: Response, next: any) => {
   try {
+    console.log(req.body.data)
     if (!req.body.data || !req.files) {
       return ApiResponseHandler.error(
         res,
