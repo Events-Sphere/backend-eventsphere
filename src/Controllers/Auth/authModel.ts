@@ -120,6 +120,7 @@ export const signup = async (req: Request, res: Response) => {
       userData.password
     );
     userData.password = hashedPassword;
+    
     let responseData: any[];
     if (userData.role === "organizer") {
       responseData = await authInstance.organizerSignup(userData);
