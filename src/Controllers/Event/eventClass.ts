@@ -4,8 +4,7 @@ import {
 } from "../../Interfaces/eventInterface";
 import db from "../../Config/knex";
 import { categoryInterface } from "../../Interfaces/categoryInterface";
-import { resolve } from "path";
-import { rejects } from "assert";
+
 
 export class EventClass {
   createEvent = async (

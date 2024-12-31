@@ -15,7 +15,6 @@ export interface EventInterface {
   main_image?: any;                   
   cover_images?: any;      
   is_main: number;
-  status: number;
   sub_events: SubEventInterface[];       
 }
 
@@ -38,7 +37,6 @@ export interface EventInterface {
     main_image: string;
     cover_images: string;
     is_main: number;
-    status: number;
   }
 
 

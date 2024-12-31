@@ -8,7 +8,6 @@ import {
 import { EventClass } from "./eventClass";
 import { FirebaseStorage } from "../../Services/Storage";
 import moment from "moment";
-import { Multer } from "multer";
 import { categoryInterface } from "../../Interfaces/categoryInterface";
 
 interface FileStorageResponse {
@@ -38,8 +37,7 @@ const isValidEventData = (data: any): data is MainEventInterface => {
     "category",
     "audience_type",
     "currency",
-    "is_main",
-    "status",
+    "is_main"
   ];
 
   for (const field of requiredFields) {
@@ -270,8 +268,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       currency: data.currency,
       main_image: imgUploadedResponse.url,
       cover_images: JSON.stringify(coverImgUploadedResponse.urls),
-      is_main: data.is_main,
-      status: data.status,
+      is_main: data.is_main
     };
 
     const response: any = await eventInstance.createEvent(
