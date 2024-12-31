@@ -12,6 +12,5 @@ export class Validators {
   static isValidMobile(mobile:string):boolean{
     const mobileRegex = /^\d{10}$/;
     return mobileRegex.test(mobile);
-
   }
 }
