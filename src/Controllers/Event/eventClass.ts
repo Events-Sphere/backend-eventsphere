@@ -1,10 +1,8 @@
 import {
-  EventInterface,
   MainEventInterface,
   SubEventInterface,
 } from "../../Interfaces/eventInterface";
 import db from "../../Config/knex";
-import { QueryBuilder } from "knex";
 import { categoryInterface } from "../../Interfaces/categoryInterface";
 
 export class EventClass {

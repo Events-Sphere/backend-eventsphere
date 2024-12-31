@@ -133,10 +133,31 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       return ApiResponseHandler.error(res, "Invalid event data provided.", 401);
     }
 
+    if (
+      data.sub_events === null ||
+      data.sub_events === undefined ||
+      data.sub_events.length === 0
+    ) {
+      return ApiResponseHandler.error(res, "Sub events are required", 400);
+    }
+
+    if (!Array.isArray(data.sub_events)) {
+      return ApiResponseHandler.error(res, "Sub-events must be an array.", 400);
+    }
+
     const mainImgFile = imageList.main_image;
 
     if (mainImgFile === null || mainImgFile === undefined) {
       return ApiResponseHandler.error(res, "Main event image is required", 400);
+    }
+
+    const coverImgFiles = imageList.cover_images;
+    if (
+      coverImgFiles === null ||
+      coverImgFiles === undefined ||
+      Object.keys(coverImgFiles).length === 0
+    ) {
+      return ApiResponseHandler.error(res, "Cover Images are required", 400);
     }
 
     const imgUploadedResponse: FileStorageResponse =
@@ -150,15 +171,6 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       );
     }
 
-    const coverImgFiles = imageList.cover_images;
-    if (
-      coverImgFiles === null ||
-      coverImgFiles === undefined ||
-      Object.keys(coverImgFiles).length === 0
-    ) {
-      return ApiResponseHandler.error(res, "Cover Images are required", 400);
-    }
-
     const coverImgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadCoverImages(`events/${data._id}/coverImages`,coverImgFiles);
     if (coverImgUploadedResponse.status === false) {
@@ -167,18 +179,6 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
         "failed to upload cover images. try again later",
         500
       );
-    }
-
-    if (
-      data.sub_events === null ||
-      data.sub_events === undefined ||
-      data.sub_events.length === 0
-    ) {
-      return ApiResponseHandler.error(res, "Sub events are required", 400);
-    }
-
-    if (!Array.isArray(data.sub_events)) {
-      return ApiResponseHandler.error(res, "Sub-events must be an array.", 400);
     }
 
     const subEventIds: any[] = [];

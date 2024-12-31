@@ -9,12 +9,11 @@ export interface EventInterface {
   longitude: number;
   latitude: number;
   category: string;
-  sub_event_items: string;
-  tags: string;
+  tags: string[];
   audience_type: string;
   currency: string;
-  main_image?: string;                   
-  cover_images?: string | string[];      
+  main_image?: any;                   
+  cover_images?: any;      
   is_main: number;
   status: number;
   sub_events: SubEventInterface[];       
@@ -48,10 +47,10 @@ export interface SubEventInterface {
     event_id: number;
     name: string;
     description: string;
-    cover_images: string | [];
+    cover_images: string;
     video_url?:string | null;
-    start_time: string | any;
-    end_time: string | any;
+    start_time:  any;
+    end_time: any;
     starting_date:string | Date;
     hostedBy:string;
     host_email:string;
@@ -65,6 +64,6 @@ export interface SubEventInterface {
     approvedBy:string;
     approvedAt: string | any;
     denial_reason?:string|null;
-    restrictions:string | [];
+    restrictions:string;
   }
   
