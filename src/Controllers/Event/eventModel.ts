@@ -8,6 +8,8 @@ import {
 import { EventClass } from "./eventClass";
 import { FirebaseStorage } from "../../Services/Storage";
 import moment from 'moment';
+import { Multer } from "multer";
+import { categoryInterface } from "../../Interfaces/categoryInterface";
 
 interface FileStorageResponse {
   status: boolean;
@@ -138,7 +140,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     }
 
     const imgUploadedResponse: FileStorageResponse =
-      await FirebaseStorage.uploadMainImage(mainImgFile , data._id);
+      await FirebaseStorage.uploadSingleImage( `events/${data._id}` , mainImgFile);
     if (imgUploadedResponse.status === false) {
       return ApiResponseHandler.error(
         res,
@@ -158,7 +160,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     }
 
     const coverImgUploadedResponse: FileStorageResponse =
-      await FirebaseStorage.uploadCoverImages(coverImgFiles , data._id);
+      await FirebaseStorage.uploadCoverImages(`events/${data._id}/coverImages`,coverImgFiles);
     if (coverImgUploadedResponse.status === false) {
       return ApiResponseHandler.error(
         res,
@@ -287,17 +289,88 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       );
     }
 
-    // const updateOrganizerEventCount = await eventInstance.updatePendingEvents(
-    //   mainEvents.org_id,
-    //   subEventIds
-    // );
-    // if (updateOrganizerEventCount.status === false) {
-    //   console.log(
-    //     "call the fn again to update count of the envent and organization pending events as well"
-    //   );
-    // }
+    const updateOrganizerEventCount = await eventInstance.updatePendingEvents(
+      mainEvents.org_id,
+      subEventIds
+    );
+    if (updateOrganizerEventCount.status === false) {
+      console.log(
+        "call the fn again to update count of the envent and organization pending events as well"
+      );
+    }
   } catch (err) {
     console.error("Error creating event:", err);
     return ApiResponseHandler.error(res, "Internal server error", 501);
   }
 };
+
+export const createCategory = async(req : Request , res : Response)=>{
+
+try{
+
+  if (!req.body.name || !req.body.file) {
+    return ApiResponseHandler.error(
+      res,
+      "Missing required data in the request. Please provide the necessary category information.",
+      400
+    );
+  }
+
+  const categoryName = req.body.name;
+  const categoryImageFile = req.body.file;
+
+  
+  if (!categoryName) {
+    return ApiResponseHandler.error(res, "Category name is required.", 400);
+  }
+
+  if (!categoryImageFile) {
+    return ApiResponseHandler.error(res, "Category image is required.", 400);
+  }
+
+  const categoryId = Date.now() + Math.floor(Math.random() * 1000);
+
+  const imgUploadedResponse: FileStorageResponse =
+  await FirebaseStorage.uploadSingleImage( `categories/${categoryId}` , categoryImageFile);
+if (imgUploadedResponse.status === false) {
+  return ApiResponseHandler.error(
+    res,
+    imgUploadedResponse.message ??
+      "failed to upload main event images. try again!",
+    500
+  );
+}
+
+const categoryData : categoryInterface = {
+  _id : categoryId,
+  name : categoryName,
+  image : imgUploadedResponse.url,
+  is_enable : 1,
+};
+
+  const response : any = await eventInstance.createCategory(categoryData);
+
+  if(response.status  === false){
+    return ApiResponseHandler.error(
+      res,
+      response.message ?? 'failed to create event. try after sometime' ,
+      500
+    );
+  }
+
+  return ApiResponseHandler.success(
+    res,
+    response.data,
+    'Category created successfully.',
+    200
+  );
+
+
+}catch(error : any){
+  return ApiResponseHandler.error(
+    res,
+     error.message ?? 'internal server error',
+    500
+  );
+ }
+}
