@@ -79,16 +79,15 @@ export class FirebaseStorage {
   };
 
   static uploadSubEventCoverImages = async (
-    files: Express.Multer.File[],
-    eventId: number,
-    subEventId: number
+    baseUrl : string,
+    files: Express.Multer.File[]
   ): Promise<{ status: boolean; urls?: string[]; message?: string }> => {
     try {
       const urls: string[] = [];
 
       await Promise.all(
         files.map(async (file, index) => {
-          const uniqueFileName = `events/${eventId}/subevents/${subEventId}/cover_${index}_${Date.now()}.jpg`;
+          const uniqueFileName = `${baseUrl}/cover_${index}_${Date.now()}.jpg`;
 
           const firebaseFile = storage.file(uniqueFileName);
 
@@ -112,7 +111,7 @@ export class FirebaseStorage {
       return { status: true, urls };
     } catch (error) {
       console.error(
-        `Error uploading sub-event cover images for event ${eventId}, sub-event ${subEventId}:`,
+        `Error uploading sub-event cover images : `,
         error
       );
       return { status: false, message: "Failed to upload sub-event cover images" };
