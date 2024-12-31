@@ -90,7 +90,6 @@ const eventInstance = new EventClass();
 
 export const createEvent = async (req: Request, res: Response, next: any) => {
   try {
-    console.log(req.body.data)
     if (!req.body.data || !req.files) {
       return ApiResponseHandler.error(
         res,
@@ -139,7 +138,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     if (!Array.isArray(data.sub_events)) {
       return ApiResponseHandler.error(res, "Sub-events must be an array.", 400);
     }
-
+    
     const mainImgFile = imageList.main_image;
 
     if (mainImgFile === null || mainImgFile === undefined) {
@@ -203,9 +202,8 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
       const coverImgUploadedResponse: FileStorageResponse =
         await FirebaseStorage.uploadSubEventCoverImages(
-          subEventCoverImgFile,
-          data._id,
-          subEvent._id
+          `'events'/${data._id}/subevents/${subEvent._id}}`,
+          subEventCoverImgFile,        
         );
       if (coverImgUploadedResponse.status === false) {
         return ApiResponseHandler.error(
