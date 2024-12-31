@@ -12,11 +12,11 @@ admin.initializeApp({
 const storage = admin.storage().bucket();
 
 export class FirebaseStorage {
-  static uploadMainImage = async (
-    file: Express.Multer.File,
-    eventId: number
+  static uploadSingleImage = async (
+    baseUrl : string,
+    file: Express.Multer.File
   ): Promise<{ status: boolean; url?: string; message?: string }> => {
-    const uniqueFileName = `events/${eventId}/main_${Date.now()}.jpg`;
+    const uniqueFileName = `${baseUrl}/main_${Date.now()}.jpg`;
 
     try {
       const firebaseFile = storage.file(uniqueFileName);
@@ -36,21 +36,21 @@ export class FirebaseStorage {
 
       return { status: true, url : uniqueFileName };
     } catch (error) {
-      console.error(`Error uploading main event image for event ${eventId}:`, error);
-      return { status: false, message: "Failed to upload main image" };
+      console.error(`Error uploading image file : `, error);
+      return { status: false, message: "Failed to upload image" };
     }
   };
 
   static uploadCoverImages = async (
-    files: Express.Multer.File[],
-    eventId: number
+    baseUrl : string,
+    files: Express.Multer.File[]
   ): Promise<{ status: boolean; urls?: string[]; message?: string }> => {
     try {
       const urls: string[] = [];
 
       await Promise.all(
         files.map(async (file, index) => {
-          const uniqueFileName = `events/${eventId}/coverImages/cover_${index}_${Date.now()}.jpg`;
+          const uniqueFileName = `${baseUrl}/cover_${index}_${Date.now()}.jpg`;
 
           const firebaseFile = storage.file(uniqueFileName);
 
@@ -73,7 +73,7 @@ export class FirebaseStorage {
 
       return { status: true, urls };
     } catch (error) {
-      console.error(`Error uploading cover images for event ${eventId}:`, error);
+      console.error(`Error uploading cover images : `, error);
       return { status: false, message: "Failed to upload cover images" };
     }
   };

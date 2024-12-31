@@ -1,5 +1,9 @@
-import { EventInterface, MainEventInterface, SubEventInterface } from "../../Interfaces/eventInterface";
+import {
+  MainEventInterface,
+  SubEventInterface,
+} from "../../Interfaces/eventInterface";
 import db from "../../Config/knex";
+import { categoryInterface } from "../../Interfaces/categoryInterface";
 
 export class EventClass {
   createEvent = async (
@@ -9,12 +13,12 @@ export class EventClass {
     return new Promise(async (resolve, reject) => {
       try {
         const [eventId] = await db("events").insert(mainEventData);
-        for(let subEvent of subEventData){
-          subEvent.event_id = eventId; 
-          console.log(subEvent); 
-           await db("subevents").insert(subEvent);
+        for (let subEvent of subEventData) {
+          subEvent.event_id = eventId;
+          console.log(subEvent);
+          await db("subevents").insert(subEvent);
         }
-          resolve({ status: true, data: eventId});
+        resolve({ status: true, data: eventId });
       } catch (error) {
         console.error("Error creating event:", error);
         reject({ status: false, data: null });
@@ -51,6 +55,30 @@ export class EventClass {
     }
   };
 
-
+  createCategory = async (categoryData: categoryInterface): Promise<any> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const categoryExists = await db
+          .select("*")
+          .from("categories")
+          .where("name", "=", categoryData.name)
+          .first();
+          
+        if (categoryExists) {
+          reject({ status: false, message: "category already exists" });
+        }
+        await db("categories")
+          .insert(categoryData);
+        
+        resolve({ status: true, data: []});
+      } catch (error: any) {
+        reject({
+          status: false,
+          message: `Error occurred: ${
+            error.message || "Something went wrong. Try again!"
+          }`,
+        });
+      }
+    });
+  };
 }
-
