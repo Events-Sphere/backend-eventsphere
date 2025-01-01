@@ -1,6 +1,8 @@
 import { Router } from "express";
 import * as EventModel  from "../Controllers/Event/eventModel";
+import * as BookingModel from "../Controllers/Bookings/bookingsModel"
 import { FileUploadMiddleware } from "../Middleware/fileUploadMiddleware";
+
 
 
 const router = Router();
@@ -12,6 +14,12 @@ router.post("/update", /* verify admin, */ fileUploadInstance.middleware(),Event
 router.get("/get-pending-events");
 router.get("/get-completed-events");
 router.get("/get-active-events");
+
+
+// <--- Event Bookings --->
+router.post("/booking/create", BookingModel.createBooking); 
+router.post("/booking/confirm", BookingModel.confirmBooking); 
+
 
 //<---- Event Category Router ----->
 router.post(

@@ -84,13 +84,13 @@ export class EventClass {
   ): Promise<{ status: boolean; data?: any; message?: string }> => {
     return new Promise(async (resolve, rejects) => {
       try {
-        const category = await db
+        const mainEvent = await db
           .select("*")
           .from("events")
           .where("_id", "=", eventId)
           .first();
-        if (category) {
-          resolve({ status: true, data: category });
+        if (mainEvent) {
+          resolve({ status: true, data: mainEvent });
         }
         resolve({ status: false, message: "Event not exists" });
       } catch (error) {
