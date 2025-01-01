@@ -190,7 +190,7 @@ export const createBooking = async (req: Request | any, res: Response) => {
         );
       }
 
-      // update booking ids into the users bookings and add amount to the orgamizer walet 
+      // update booking ids into the users bookings and add amount to the orgamizer earnings
   
       return ApiResponseHandler.success(
         res,
