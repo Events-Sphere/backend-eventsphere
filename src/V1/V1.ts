@@ -1,6 +1,6 @@
 import { Router } from "express";
 import eventRouter from '../Routes/eventRoute';
-
+import authRouter from "../Routes/authRoute"
 const router = Router();
 
 
@@ -9,6 +9,7 @@ const router = Router();
 
 
 router.use("/event" , eventRouter);
+router.use("/auth" , authRouter);
 
 
 

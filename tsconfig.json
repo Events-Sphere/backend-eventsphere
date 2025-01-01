@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["index.ts", "src/**/*.ts", "src/types/**/*.d.ts"]
+  "include": ["index.ts", "src/**/*.ts", "src/types/express.d.ts"]
 }
