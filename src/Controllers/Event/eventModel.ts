@@ -8,6 +8,8 @@ import {
 import { EventClass } from "./eventClass";
 import { FirebaseStorage } from "../../Services/Storage";
 import moment from "moment";
+import { COMMON_MESSAGES } from "../../Common/messages";
+
 
 interface FileStorageResponse {
   status: boolean;
@@ -307,7 +309,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
 export const updateEvent = async (req: Request, res: Response, next: any) => {
   try {
-    // if you have new subEvents then add cover image files like eg(sub_cover_images[here id of the subEvent] : [list of image files])
+    
     const { eventId, mainEventData, subEventsData } = req.body;
     const subEventsCoverFiles = req.body.files;
 
@@ -488,87 +490,72 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
   }
 };
 
-
 export const getPendingEvents = async (req: Request, res: Response) => {
   try {
-
     if (!req.user || !req.user.id) {
-      return ApiResponseHandler.error(res, "User not authenticated. Please log in.", 401);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
     }
-    
+
     const response = await eventInstance.getPendingEventList(Number(req.user.id));
-  
-     if(!response.status){
-      return ApiResponseHandler.error(res, `${response.message ?? 'something went wrong. Try again'}` , 400);
-     } 
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+    }
 
     return ApiResponseHandler.success(
       res,
       response.data,
-      "Pending events with sub-events retrieved successfully.",
+      "Pending events retrieved successfully.",
       200
     );
   } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "An error occurred while retrieving pending events.",
-      500
-    );
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
-
 
 export const getCompletedEvents = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
-      return ApiResponseHandler.error(res, "User not authenticated. Please log in.", 401);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
     }
 
     const response = await eventInstance.getCompletedEventList(Number(req.user.id));
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, `${response.message ?? "Something went wrong. Try again"}`, 400);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
     }
 
     return ApiResponseHandler.success(
       res,
       response.data,
-      "Completed events with sub-events retrieved successfully.",
+      "Completed events retrieved successfully.",
       200
     );
   } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "An error occurred while retrieving completed events.",
-      500
-    );
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
 
 export const getActiveEvents = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
-      return ApiResponseHandler.error(res, "User not authenticated. Please log in.", 401);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
     }
 
     const response = await eventInstance.getActiveEventList(Number(req.user.id));
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, `${response.message ?? "Something went wrong. Try again"}`, 400);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
     }
 
     return ApiResponseHandler.success(
       res,
       response.data,
-      "Active events with sub-events retrieved successfully.",
+      "Active events retrieved successfully.",
       200
     );
   } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "An error occurred while retrieving active events.",
-      500
-    );
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
 
@@ -577,13 +564,13 @@ export const getEventsByCategoryName = async (req: Request, res: Response) => {
     const { categoryName } = req.query;
 
     if (!categoryName) {
-      return ApiResponseHandler.error(res, "Category name is required.", 400);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.CATEGORY_REQUIRED, 400);
     }
 
     const response = await eventInstance.getEventsByCategoryName(categoryName.toString());
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, `${response.message ?? "No events found for the given category"}`, 404);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.CATEGORY_NOT_FOUND, 404);
     }
 
     return ApiResponseHandler.success(
@@ -593,11 +580,7 @@ export const getEventsByCategoryName = async (req: Request, res: Response) => {
       200
     );
   } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "An error occurred while retrieving events by category.",
-      500
-    );
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
 
@@ -606,7 +589,7 @@ export const getPopularEvents = async (req: Request, res: Response) => {
     const response = await eventInstance.getPopularEventList();
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, `${response.message ?? "No popular events found."}`, 404);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.POPULAR_EVENTS_NOT_FOUND, 404);
     }
 
     return ApiResponseHandler.success(
@@ -616,11 +599,7 @@ export const getPopularEvents = async (req: Request, res: Response) => {
       200
     );
   } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "An error occurred while retrieving popular events.",
-      500
-    );
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
 
@@ -629,7 +608,7 @@ export const getUpcomingEvents = async (req: Request, res: Response) => {
     const response = await eventInstance.getUpcomingEventList();
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, `${response.message ?? "No upcoming events found."}`, 404);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.UPCOMING_EVENTS_NOT_FOUND, 404);
     }
 
     return ApiResponseHandler.success(
@@ -639,12 +618,6 @@ export const getUpcomingEvents = async (req: Request, res: Response) => {
       200
     );
   } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "An error occurred while retrieving upcoming events.",
-      500
-    );
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
-
-
