@@ -4,13 +4,13 @@ import * as BookingModel from "../Controllers/Bookings/bookingsModel"
 
 const router = Router();
 
-// <--- Event Bookings --->
-router.post("/booking/create", BookingModel.createBooking); 
-router.post("/booking/confirm", BookingModel.confirmBooking); 
 
-router.get('/booking/pending', BookingModel.getUserPendingBookings);
-router.get('/booking/booked',BookingModel.getUserBookedEvents);
-router.get('/booking/canceled' , BookingModel.getUserCancelledBookings);
+router.post("/bookings", BookingModel.createBooking); 
+router.post("/bookings/confirm", BookingModel.confirmBooking); 
+
+router.get("/bookings/pending", BookingModel.getUserPendingBookings); 
+router.get("/bookings/confirmed", BookingModel.getUserBookedEvents); 
+router.get("/bookings/canceled", BookingModel.getUserCancelledBookings); 
 
 
 export default router;

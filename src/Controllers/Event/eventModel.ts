@@ -186,6 +186,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     const subEventsData: SubEventInterface[] = [];
 
     let idx = 0;
+    let totalAmount = 0;
     for (let subEvent of data.sub_events) {
       if (!isValidSubEventData(subEvent)) {
         return ApiResponseHandler.error(
@@ -214,8 +215,10 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
         );
       }
 
+      totalAmount = totalAmount + subEvent.ticket_price;
+      const subEventId = subEvent._id ?? Math.floor(10000 + Math.random() * 90000);
       const subevent: SubEventInterface = {
-        _id: subEvent._id,
+        _id: subEventId,
         event_id: subEvent.event_id,
         name: subEvent.name,
         description: subEvent.description,
@@ -229,13 +232,10 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
         host_mobile: subEvent.host_mobile,
         c_code: subEvent.c_code,
         ticket_quantity: subEvent.ticket_quantity,
-        ticket_sold: subEvent.ticket_sold,
+        ticket_sold: 0,
         ticket_type: subEvent.ticket_type,
         ticket_price: subEvent.ticket_price,
-        earnings: subEvent.earnings,
-        approvedBy: subEvent.approvedBy,
-        approvedAt: moment(subEvent.approvedAt).format("YYYY-MM-DD HH:mm:ss"),
-        denial_reason: subEvent.denial_reason || null,
+        earnings: 0,
         restrictions: JSON.stringify(subEvent.restrictions),
       };
 
@@ -294,6 +294,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     const updateOrganizerEventCount =
       await eventInstance.updateOrganizationEventCounts(
         mainEvents.org_id,
+        totalAmount,
         subEventIds
       );
     if (updateOrganizerEventCount.status === false) {
@@ -490,7 +491,7 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
   }
 };
 
-export const getPendingEvents = async (req: Request, res: Response) => {
+export const getPendingEventsById = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
       return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
@@ -513,7 +514,7 @@ export const getPendingEvents = async (req: Request, res: Response) => {
   }
 };
 
-export const getCompletedEvents = async (req: Request, res: Response) => {
+export const getCompletedEventsById = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
       return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
@@ -536,7 +537,7 @@ export const getCompletedEvents = async (req: Request, res: Response) => {
   }
 };
 
-export const getActiveEvents = async (req: Request, res: Response) => {
+export const getActiveEventsById = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
       return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
@@ -584,6 +585,77 @@ export const getEventsByCategoryName = async (req: Request, res: Response) => {
   }
 };
 
+
+
+export const getPendingEvents = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+    }
+
+    const response = await eventInstance.getAllPendingEventList();
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Pending events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const getCompletedEvents = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+    }
+
+    const response = await eventInstance.getAllCompletedEventList();
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Completed events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const getActiveEvents = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+    }
+
+    const response = await eventInstance.getAllActiveEventList();
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Active events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
 export const getPopularEvents = async (req: Request, res: Response) => {
   try {
     const response = await eventInstance.getPopularEventList();
@@ -621,3 +693,28 @@ export const getUpcomingEvents = async (req: Request, res: Response) => {
     return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
+
+export const searchEvents = async (req: Request, res: Response) => {
+  try {
+    const { queryText, location, category } = req.body;
+
+    
+    const response = await eventInstance.searchEventList({ queryText, location, category });
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.EVENTS_NOT_FOUND, 404);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    console.error("Error searching events:", error);
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+

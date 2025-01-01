@@ -33,5 +33,6 @@ export const COMMON_MESSAGES = {
   CATEGORY_REQUIRED: "Category name is required.",
   POPULAR_EVENTS_NOT_FOUND: "No popular events found.",
   UPCOMING_EVENTS_NOT_FOUND: "No upcoming events found.",
+  EVENTS_NOT_FOUND: "No events found.",
   
 };

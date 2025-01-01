@@ -6,11 +6,11 @@ const router = Router();
 
 const fileUploadInstance = new FileUploadMiddleware();
 
-//<---- Event Category Router ----->
-router.post("/category/create", fileUploadInstance.middleware(), CategoryModel.createCategory);
-router.post("/category/update", fileUploadInstance.middleware(), CategoryModel.updateCategoryByID);
-router.post("/category/delete", CategoryModel.deleteCategoryByID);
-router.post("/category/get/single", CategoryModel.getCategoryById);
-router.post("/category/get/all", CategoryModel.getAllCategories);
+
+router.post("/categories", fileUploadInstance.middleware(), CategoryModel.createCategory); 
+router.post("/categories/update", fileUploadInstance.middleware(), CategoryModel.updateCategoryByID); 
+router.post("/categories/delete", CategoryModel.deleteCategoryByID); 
+router.get("/categories/single", CategoryModel.getCategoryById); 
+router.get("/categories", CategoryModel.getAllCategories); 
 
 export default router;

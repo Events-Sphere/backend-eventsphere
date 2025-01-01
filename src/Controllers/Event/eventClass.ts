@@ -14,7 +14,6 @@ export class EventClass {
         const [eventId] = await db("events").insert(mainEventData);
         for (let subEvent of subEventData) {
           subEvent.event_id = eventId;
-          console.log(subEvent);
           await db("subevents").insert(subEvent);
         }
         resolve({ status: true, data: eventId });
@@ -25,6 +24,31 @@ export class EventClass {
     });
   };
 
+  updateOrganizationPendingEvent = async (
+    orgId: number,
+    eventId: number
+  ) => {
+    try {
+      const result: any[] = await db('organizations').select('*').where('_id', '=', orgId);
+      
+      if (result.length === 0) {
+        return { status: false};
+      }
+      
+      const existingPendingEventsIds = result[0].pending_events || [];
+  
+      const uniquePendingEventsIds = [...new Set([...existingPendingEventsIds, eventId])];
+      
+      await db('organizations')
+        .where('_id', '=', orgId)
+        .update({ pending_events: uniquePendingEventsIds });
+  
+      return { status: true };
+    } catch (error) {
+      return { status: false};
+    }
+  };
+  
   updateEvent = async (
     eventId: number,
     updatedMainEventData: MainEventInterface,
@@ -120,15 +144,17 @@ export class EventClass {
 
   updateOrganizationEventCounts = async (
     orgId: any,
+    amount : number,
     currentEvents: any[]
   ): Promise<{ status: boolean; data: any }> => {
     try {
-      const [{ events_counts, pending_events }] = await db
-        .select("events_counts", "pending_events")
+      const [{ events_counts, pending_events, total_earnings }] = await db
+        .select("events_counts", "pending_events","total_earnings")
         .from("organizations")
         .where("_id", "=", orgId);
 
       const totalCount = Number.parseInt(events_counts) + 1;
+      const totalEarnings = total_earnings + amount;
       const updatedPendingEvents = pending_events.filter(
         (event: any) => !currentEvents.includes(event)
       );
@@ -138,6 +164,7 @@ export class EventClass {
         .update({
           events_counts: totalCount,
           pending_events: JSON.stringify(updatedPendingEvents),
+          total_earnings: totalEarnings,
         });
 
       return { status: true, data: { totalCount, updatedPendingEvents } };
@@ -372,4 +399,175 @@ export class EventClass {
     }
   };
 
+  getAllPendingEventList = async (): Promise<any> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const pendingEvents = await db("events")
+          .select("*")
+          .where("status", "pending");
+
+        if (!pendingEvents || pendingEvents.length === 0) {
+          return {
+            status: false,
+            message: "No pending events found.",
+            data: [],
+          };
+        }
+
+        const eventsWithSubEvents = await Promise.all(
+          pendingEvents.map(async (event: any) => {
+            const subEventIds = JSON.parse(event.sub_event_items || "[]");
+
+            const subEvents = subEventIds.length
+              ? await db("subevents").whereIn("_id", subEventIds)
+              : [];
+
+            return {
+              ...event,
+              sub_events: subEvents.map((subEvent: any) => ({
+                _id: subEvent._id,
+                event_id: subEvent.event_id,
+                name: subEvent.name,
+                description: subEvent.description,
+                cover_images: subEvent.cover_images,
+                video_url: subEvent.video_url ?? null,
+                start_time: subEvent.start_time,
+                end_time: subEvent.end_time,
+                starting_date: subEvent.starting_date,
+                hostedBy: subEvent.hostedBy,
+                host_email: subEvent.host_email,
+                host_mobile: subEvent.host_mobile,
+                c_code: subEvent.c_code,
+                ticket_quantity: subEvent.ticket_quantity,
+                ticket_sold: subEvent.ticket_sold,
+                ticket_type: subEvent.ticket_type,
+                ticket_price: subEvent.ticket_price,
+                earnings: subEvent.earnings,
+                approvedBy: subEvent.approvedBy,
+                approvedAt: subEvent.approvedAt,
+                denial_reason: subEvent.denial_reason ?? null,
+                restrictions: subEvent.restrictions,
+              })),
+            };
+          })
+        );
+
+        return {
+          status: true,
+          message: "Pending events with sub-events retrieved successfully.",
+          data: eventsWithSubEvents,
+        };
+      } catch (error) {
+        return {
+          status: false,
+          message: "An error occurred while retrieving pending events.",
+          data: [],
+        };
+      }
+    });
+  };
+
+
+  getAllCompletedEventList = async (): Promise<any> => {
+    try {
+      const completedEvents = await db("events")
+        .select("*")
+        .where("status", "completed")
+
+      if (!completedEvents || completedEvents.length === 0) {
+        return { status: false, message: "No completed events found.", data: [] };
+      }
+
+      const eventsWithSubEvents = await Promise.all(
+        completedEvents.map(async (event: any) => {
+          const subEventIds = JSON.parse(event.sub_event_items || "[]");
+          const subEvents = subEventIds.length ? await db("subevents").whereIn("_id", subEventIds) : [];
+          return { ...event, sub_events: subEvents };
+        })
+      );
+
+      return { status: true, message: "Completed events with sub-events retrieved successfully.", data: eventsWithSubEvents };
+    } catch (error) {
+      console.error("Error fetching completed events:", error);
+      return { status: false, message: "An error occurred while retrieving completed events.", data: [] };
+    }
+  };
+
+  getAllActiveEventList = async (): Promise<any> => {
+    try {
+      const activeEvents = await db("events")
+        .select("*")
+        .where("status", "active");
+
+      if (!activeEvents || activeEvents.length === 0) {
+        return { status: false, message: "No active events found.", data: [] };
+      }
+
+      const eventsWithSubEvents = await Promise.all(
+        activeEvents.map(async (event: any) => {
+          const subEventIds = JSON.parse(event.sub_event_items || "[]");
+          const subEvents = subEventIds.length ? await db("subevents").whereIn("_id", subEventIds) : [];
+          return { ...event, sub_events: subEvents };
+        })
+      );
+
+      return { status: true, message: "Active events with sub-events retrieved successfully.", data: eventsWithSubEvents };
+    } catch (error) {
+      console.error("Error fetching active events:", error);
+      return { status: false, message: "An error occurred while retrieving active events.", data: [] };
+    }
+  };
+
+
+  searchEventList = async ({
+    queryText,
+    location,
+    category,
+  }: {
+    queryText?: string;
+    location?: string;
+    category?: string;
+  }): Promise<any> => {
+    try {
+      
+      const query = db("main_events").select("*");
+      if (queryText) query.where("name", "like", `%${queryText}%`);
+      if (location) query.andWhere("location", "=", location);
+      if (category) query.andWhere("category", "=", category);
+  
+      
+      const mainEvents = await query;
+  
+      if (!mainEvents || mainEvents.length === 0) {
+        return { status: false, data: [] };
+      }
+  
+      
+      const eventsWithSubEvents = await Promise.all(
+        mainEvents.map(async (event: any) => {
+          const subEventIds = JSON.parse(event.sub_event_items || "[]");
+          const subEvents = subEventIds.length
+            ? await db("sub_events").select("*").whereIn("_id", subEventIds)
+            : [];
+          return {
+            ...event,
+            sub_events: subEvents,
+          };
+        })
+      );
+  
+      return {
+        status: true,
+        data: eventsWithSubEvents,
+      };
+    } catch (error) {
+      return {
+        status: false,
+        message: "An error occurred while retrieving events.",
+        data: [],
+      };
+    }
+  };
+
+  
 }

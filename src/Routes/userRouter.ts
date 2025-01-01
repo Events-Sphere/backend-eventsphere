@@ -3,8 +3,8 @@ import * as UserModel from "../Controllers/Users/UserModel";
 
 const router = express.Router();
 
-router.post("/addToFavorite", UserModel.addToFavorite);
-router.post("/removeFromFavorite", UserModel.removeFromFavorite);
-router.get("/getFavoriteEvents", UserModel.getFavoriteEvents);
+router.post("/favorites/create", UserModel.addToFavorite); 
+router.post("/favorites/delete", UserModel.removeFromFavorite); 
+router.get("/favorites", UserModel.getFavoriteEvents); 
 
 export default router;

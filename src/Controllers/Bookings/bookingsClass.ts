@@ -101,14 +101,15 @@ export class BookingsClass {
 
       
       const event = await db("events").where("_id", eventId).first();
-      if (!event) throw new Error("Event not found for earnings update.");
-
+      if (!event)
+        return {status : false}; 
+      
       const organizerId = event.org_id;
-      const organizer = await db("users").where("_id", organizerId).first();
+      const organizer = await db("organizations").where("_id", organizerId).first();
       if (organizer) {
-        const updatedEarnings = (organizer.earnings || 0) + bookingAmount;
-        await db("users").where("_id", organizerId).update({
-          earnings: updatedEarnings,
+        const updatedEarnings = (organizer.total_earnings || 0) + bookingAmount;
+        await db("organizations").where("_id", organizerId).update({
+          total_earnings: updatedEarnings,
         });
       }
 

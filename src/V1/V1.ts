@@ -6,15 +6,10 @@ import userRouter from "../Routes/userRouter";
 
 const router = Router();
 
-
-// router.post("/internal-team");
-// router.post("/organizer");
-
-
-router.use("/auth" , authRouter);
-router.use("/event" , eventRouter);
-router.use("/category" , categoryRouter);
-router.use("/user" , userRouter);
+router.use("/auth", authRouter);           
+router.use("/events", eventRouter);       
+router.use("/categories", categoryRouter); 
+router.use("/users", userRouter);         
 
 
 
