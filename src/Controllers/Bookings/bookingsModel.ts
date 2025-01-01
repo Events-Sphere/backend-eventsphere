@@ -207,4 +207,63 @@ export const createBooking = async (req: Request | any, res: Response) => {
       );
     }
   };
+
+
+  export const getUserPendingBookings = async (req: Request, res: Response) => {
+    try {
+      if (!req.user || !req.user?.id) {
+        return ApiResponseHandler.error(res, "User not authenticated. Please login to continue.", 401);
+      }
   
+      const response = await bookingInstance.getPendingBookingList(Number(req.user.id));
+  
+      if (!response.status) {
+        return ApiResponseHandler.error(res, response.message ?? "No pending bookings found.", 404);
+      }
+  
+      return ApiResponseHandler.success(res, response.data, "Pending bookings retrieved successfully.", 200);
+    } catch (error) {
+      return ApiResponseHandler.error(res, "An unexpected error occurred. Please try again later.", 500);
+    }
+  };
+  
+
+
+  export const getUserBookedEvents = async (req: Request, res: Response) => {
+    try {
+      if (!req.user || !req.user?.id) {
+        return ApiResponseHandler.error(res, "User not authenticated. Please login to continue.", 401);
+      }
+  
+      const response = await bookingInstance.getBookedEventsList(Number(req.user.id));
+  
+      if (!response.status) {
+        return ApiResponseHandler.error(res, response.message ?? "No booked events found.", 404);
+      }
+  
+      return ApiResponseHandler.success(res, response.data, "Booked events retrieved successfully.", 200);
+    } catch (error) {
+      return ApiResponseHandler.error(res, "An unexpected error occurred. Please try again later.", 500);
+    }
+  };
+  
+
+
+
+  export const getUserCancelledBookings = async (req: Request, res: Response) => {
+    try {
+      if (!req.user || !req.user?.id) {
+        return ApiResponseHandler.error(res, "User not authenticated. Please login to continue.", 401);
+      }
+  
+      const response = await bookingInstance.getCancelledBookings(Number(req.user.id));
+  
+      if (!response.status) {
+        return ApiResponseHandler.error(res, response.message ?? "No cancelled booked events found.", 404);
+      }
+  
+      return ApiResponseHandler.success(res, response.data, "cancelled bookings retrieved successfully.", 200);
+    } catch (error) {
+      return ApiResponseHandler.error(res, "An unexpected error occurred. Please try again later.", 500);
+    }
+  };

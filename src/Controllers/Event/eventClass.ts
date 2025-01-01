@@ -3,9 +3,6 @@ import {
   SubEventInterface,
 } from "../../Interfaces/eventInterface";
 import db from "../../Config/knex";
-import { categoryInterface } from "../../Interfaces/categoryInterface";
-import { resolve } from "path";
-import { rejects } from "assert";
 
 export class EventClass {
   createEvent = async (
@@ -150,104 +147,229 @@ export class EventClass {
     }
   };
 
-  createCategory = async (categoryData: categoryInterface): Promise<any> => {
+  getPendingEventList = async (userId: number): Promise<any> => {
     return new Promise(async (resolve, reject) => {
       try {
-        const categoryExists = await db
+        const pendingEvents = await db("events")
           .select("*")
-          .from("categories")
-          .where("name", "=", categoryData.name)
-          .first();
+          .where("status", "pending")
+          .andWhere("org_id", userId);
 
-        if (categoryExists) {
-          reject({ status: false, message: "category already exists" });
+        if (!pendingEvents || pendingEvents.length === 0) {
+          return {
+            status: false,
+            message: "No pending events found.",
+            data: [],
+          };
         }
-        await db("categories").insert(categoryData);
 
-        resolve({ status: true, data: [] });
-      } catch (error: any) {
-        reject({
-          status: false,
-          message: `Error occurred: ${
-            error.message || "Something went wrong. Try again!"
-          }`,
-        });
-      }
-    });
-  };
+        const eventsWithSubEvents = await Promise.all(
+          pendingEvents.map(async (event: any) => {
+            const subEventIds = JSON.parse(event.sub_event_items || "[]");
 
-  getCategoryById = async (
-    categoryId: number
-  ): Promise<{ status: boolean; data?: any; message?: string }> => {
-    return new Promise(async (resolve, rejects) => {
-      try {
-        const category = await db
-          .select("*")
-          .from("categories")
-          .where("_id", "=", categoryId)
-          .first();
-        if (category) {
-          resolve({ status: true, data: category });
-        }
-        resolve({ status: false, message: "category not exists" });
+            const subEvents = subEventIds.length
+              ? await db("subevents").whereIn("_id", subEventIds)
+              : [];
+
+            return {
+              ...event,
+              sub_events: subEvents.map((subEvent: any) => ({
+                _id: subEvent._id,
+                event_id: subEvent.event_id,
+                name: subEvent.name,
+                description: subEvent.description,
+                cover_images: subEvent.cover_images,
+                video_url: subEvent.video_url ?? null,
+                start_time: subEvent.start_time,
+                end_time: subEvent.end_time,
+                starting_date: subEvent.starting_date,
+                hostedBy: subEvent.hostedBy,
+                host_email: subEvent.host_email,
+                host_mobile: subEvent.host_mobile,
+                c_code: subEvent.c_code,
+                ticket_quantity: subEvent.ticket_quantity,
+                ticket_sold: subEvent.ticket_sold,
+                ticket_type: subEvent.ticket_type,
+                ticket_price: subEvent.ticket_price,
+                earnings: subEvent.earnings,
+                approvedBy: subEvent.approvedBy,
+                approvedAt: subEvent.approvedAt,
+                denial_reason: subEvent.denial_reason ?? null,
+                restrictions: subEvent.restrictions,
+              })),
+            };
+          })
+        );
+
+        return {
+          status: true,
+          message: "Pending events with sub-events retrieved successfully.",
+          data: eventsWithSubEvents,
+        };
       } catch (error) {
-        rejects({ status: false, message: "something went wrong. Try again." });
-      }
-    });
-  };
-
-  getAllCategories = async (): Promise<{
-    status: boolean;
-    data?: any;
-    message?: string;
-  }> => {
-    return new Promise(async (resolve, rejects) => {
-      try {
-        const category = await db.select("*").from("categories");
-        if (category) {
-          resolve({ status: true, data: category });
-        }
-        resolve({ status: true, message: "categori list is empty" });
-      } catch (error) {
-        rejects({ status: false, message: "something went wrong. Try again." });
-      }
-    });
-  };
-
-  updateCategory = async (
-    categoryUpdatedData: categoryInterface
-  ): Promise<{}> => {
-    return new Promise(async (resolve, rejects) => {
-      try {
-        await db("categories")
-          .insert(categoryUpdatedData)
-          .where("_id", "=", categoryUpdatedData._id);
-        resolve({ status: true, data: [] });
-      } catch (error) {
-        rejects({ status: false, message: "failure to update category" });
-      }
-    });
-  };
-
-  deleteCategoryById = async (
-    _id: number
-  ): Promise<{ status: boolean; message?: string }> => {
-    try {
-      const result = await db("categories").where("_id", "=", _id).delete();
-
-      if (result === 0) {
         return {
           status: false,
-          message: "Category not found or already deleted",
+          message: "An error occurred while retrieving pending events.",
+          data: [],
         };
       }
+    });
+  };
 
-      return { status: true, message: "Category deleted successfully" };
+
+  getCompletedEventList = async (userId: number): Promise<any> => {
+    try {
+      const completedEvents = await db("events")
+        .select("*")
+        .where("status", "completed")
+        .andWhere("org_id", userId);
+
+      if (!completedEvents || completedEvents.length === 0) {
+        return { status: false, message: "No completed events found.", data: [] };
+      }
+
+      const eventsWithSubEvents = await Promise.all(
+        completedEvents.map(async (event: any) => {
+          const subEventIds = JSON.parse(event.sub_event_items || "[]");
+          const subEvents = subEventIds.length ? await db("subevents").whereIn("_id", subEventIds) : [];
+          return { ...event, sub_events: subEvents };
+        })
+      );
+
+      return { status: true, message: "Completed events with sub-events retrieved successfully.", data: eventsWithSubEvents };
     } catch (error) {
-      return {
-        status: false,
-        message: "Failed to delete category. Please try again later.",
-      };
+      console.error("Error fetching completed events:", error);
+      return { status: false, message: "An error occurred while retrieving completed events.", data: [] };
     }
   };
+
+  getActiveEventList = async (userId: number): Promise<any> => {
+    try {
+      const activeEvents = await db("events")
+        .select("*")
+        .where("status", "active")
+        .andWhere("org_id", userId);
+
+      if (!activeEvents || activeEvents.length === 0) {
+        return { status: false, message: "No active events found.", data: [] };
+      }
+
+      const eventsWithSubEvents = await Promise.all(
+        activeEvents.map(async (event: any) => {
+          const subEventIds = JSON.parse(event.sub_event_items || "[]");
+          const subEvents = subEventIds.length ? await db("subevents").whereIn("_id", subEventIds) : [];
+          return { ...event, sub_events: subEvents };
+        })
+      );
+
+      return { status: true, message: "Active events with sub-events retrieved successfully.", data: eventsWithSubEvents };
+    } catch (error) {
+      console.error("Error fetching active events:", error);
+      return { status: false, message: "An error occurred while retrieving active events.", data: [] };
+    }
+  };
+
+  getEventsByCategoryName = async (categoryName: string): Promise<any> => {
+    try {
+      const eventsByCategory = await db("events")
+        .select("*")
+        .where("category", categoryName);
+
+      if (!eventsByCategory || eventsByCategory.length === 0) {
+        return { status: false, message: `No events found for category: ${categoryName}.`, data: [] };
+      }
+
+      const eventsWithSubEvents = await Promise.all(
+        eventsByCategory.map(async (event: any) => {
+          const subEventIds = JSON.parse(event.sub_event_items || "[]");
+          const subEvents = subEventIds.length ? await db("subevents").whereIn("_id", subEventIds) : [];
+          return { ...event, sub_events: subEvents };
+        })
+      );
+
+      return { status: true, message: `Events under category: ${categoryName} retrieved successfully.`, data: eventsWithSubEvents };
+    } catch (error) {
+      console.error("Error fetching events by category:", error);
+      return { status: false, message: "An error occurred while retrieving events by category.", data: [] };
+    }
+  };
+
+  getPopularEventList = async (): Promise<any> => {
+    try {
+      const popularEvents = await db("bookings")
+        .select("event_id")
+        .count("* as bookings_count")
+        .groupBy("event_id")
+        .orderBy("bookings_count", "desc")
+        .limit(10); 
+
+      if (!popularEvents || popularEvents.length === 0) {
+        return { status: false, message: "No popular events found.", data: [] };
+      }
+
+      const eventDetails = await Promise.all(
+        popularEvents.map(async (event: any) => {
+          const eventData = await db("events").where("_id", event.event_id).first();
+          if (eventData) {
+            const subEventIds = JSON.parse(eventData.sub_event_items || "[]");
+            const subEvents = subEventIds.length
+              ? await db("subevents").whereIn("_id", subEventIds)
+              : [];
+            return {
+              ...eventData,
+              bookings_count: event.bookings_count,
+              sub_events: subEvents,
+            };
+          }
+          return null;
+        })
+      );
+
+      return {
+        status: true,
+        message: "Popular events retrieved successfully.",
+        data: eventDetails.filter(Boolean), 
+      };
+    } catch (error) {
+      console.error("Error fetching popular events:", error);
+      return { status: false, message: "An error occurred while retrieving popular events.", data: [] };
+    }
+  };
+  
+  
+  getUpcomingEventList = async (): Promise<any> => {
+    try {
+      const upcomingEvents = await db("events")
+        .select("*")
+        .where("registration_start", ">", new Date())
+        .orderBy("registration_start", "asc");
+
+      if (!upcomingEvents || upcomingEvents.length === 0) {
+        return { status: false, message: "No upcoming events found.", data: [] };
+      }
+
+      const eventsWithSubEvents = await Promise.all(
+        upcomingEvents.map(async (event: any) => {
+          const subEventIds = JSON.parse(event.sub_event_items || "[]");
+          const subEvents = subEventIds.length
+            ? await db("subevents").whereIn("_id", subEventIds)
+            : [];
+          return {
+            ...event,
+            sub_events: subEvents,
+          };
+        })
+      );
+
+      return {
+        status: true,
+        message: "Upcoming events retrieved successfully.",
+        data: eventsWithSubEvents,
+      };
+    } catch (error) {
+      console.error("Error fetching upcoming events:", error);
+      return { status: false, message: "An error occurred while retrieving upcoming events.", data: [] };
+    }
+  };
+
 }
