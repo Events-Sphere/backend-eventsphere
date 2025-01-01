@@ -37,7 +37,7 @@ const isValidEventData = (data: any): data is MainEventInterface => {
     "category",
     "audience_type",
     "currency",
-    "is_main"
+    "is_main",
   ];
 
   for (const field of requiredFields) {
@@ -138,7 +138,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     if (!Array.isArray(data.sub_events)) {
       return ApiResponseHandler.error(res, "Sub-events must be an array.", 400);
     }
-    
+
     const mainImgFile = imageList.main_image;
 
     if (mainImgFile === null || mainImgFile === undefined) {
@@ -203,7 +203,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       const coverImgUploadedResponse: FileStorageResponse =
         await FirebaseStorage.uploadSubEventCoverImages(
           `'events'/${data._id}/subevents/${subEvent._id}}`,
-          subEventCoverImgFile,        
+          subEventCoverImgFile
         );
       if (coverImgUploadedResponse.status === false) {
         return ApiResponseHandler.error(
@@ -266,7 +266,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       currency: data.currency,
       main_image: imgUploadedResponse.url,
       cover_images: JSON.stringify(coverImgUploadedResponse.urls),
-      is_main: data.is_main
+      is_main: data.is_main,
     };
 
     const response: any = await eventInstance.createEvent(
@@ -290,10 +290,11 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       );
     }
 
-    const updateOrganizerEventCount = await eventInstance.updatePendingEvents(
-      mainEvents.org_id,
-      subEventIds
-    );
+    const updateOrganizerEventCount =
+      await eventInstance.updateOrganizationEventCounts(
+        mainEvents.org_id,
+        subEventIds
+      );
     if (updateOrganizerEventCount.status === false) {
       console.log(
         "call the fn again to update count of the envent and organization pending events as well"
@@ -302,6 +303,189 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
   } catch (err) {
     console.error("Error creating event:", err);
     return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+export const updateEvent = async (req: Request, res: Response, next: any) => {
+  try {
+    // if you have new subEvents then add cover image files like eg(sub_cover_images[here id of the subEvent] : [list of image files])
+    const { eventId, mainEventData, subEventsData } = req.body;
+    const subEventsCoverFiles = req.body.files;
+
+    if (!eventId) {
+      return ApiResponseHandler.error(res, "Event ID is required.", 400);
+    }
+
+    const existingEvent = await eventInstance.getEventById(eventId);
+
+    if (!existingEvent) {
+      return ApiResponseHandler.error(res, "Event not found.", 404);
+    }
+
+    if (!mainEventData) {
+      return ApiResponseHandler.error(res, "Main event data is required.", 400);
+    }
+
+    const requiredMainFields = [
+      "_id",
+      "name",
+      "location",
+      "org_id",
+      "description",
+      "registration_start",
+      "registration_end",
+      "longitude",
+      "latitude",
+      "category",
+      "tags",
+      "audience_type",
+      "currency",
+      "main_image",
+      "cover_images",
+      "is_main",
+    ];
+
+    for (const field of requiredMainFields) {
+      if (!mainEventData[field] || mainEventData[field] === "") {
+        return ApiResponseHandler.error(
+          res,
+          `Field ${field} is required and cannot be empty.`,
+          400
+        );
+      }
+    }
+
+
+    for(let subEvent of subEventsData){
+      const requiredSubFields = [
+        "name",
+        "description",
+        "start_time",
+        "end_time",
+        "starting_date",
+        "hostedBy",
+        "host_email",
+        "host_mobile",
+        "c_code",
+        "ticket_quantity",
+        "ticket_sold",
+        "ticket_type",
+        "ticket_price",
+        "restrictions",
+      ];
+
+      for (const field of requiredSubFields) {
+        if (!subEvent[field] || subEvent[field] === "") {
+          return ApiResponseHandler.error(
+            res,
+            `Field ${field} in sub-event is required and cannot be empty.`,
+            400
+          );
+        }
+      }
+    }
+
+    const updatedMainEventData: MainEventInterface = {
+      ...mainEventData,
+      registration_start: moment(mainEventData.registration_start).format(
+        "YYYY-MM-DD HH:mm:ss"
+      ),
+      registration_end: moment(mainEventData.registration_end).format(
+        "YYYY-MM-DD HH:mm:ss"
+      ),
+      tags: JSON.stringify(mainEventData.tags),
+      audience_type: mainEventData.audience_type,
+    };
+
+    const existingSubEventIds = JSON.parse(
+      existingEvent.data.sub_event_items || "[]"
+    );
+
+    const mappedSubEventsCoverFiles: Record<string, any> = {};
+    if (subEventsCoverFiles) {
+      for (const key in subEventsCoverFiles) {
+        const match = key.match(/sub_cover_images(\d+)/);
+        if (match) {
+          const subEventId = match[1];
+          if (!mappedSubEventsCoverFiles[subEventId]) {
+            mappedSubEventsCoverFiles[subEventId] = [];
+          }
+          mappedSubEventsCoverFiles[subEventId].push(subEventsCoverFiles[key]);
+        }
+      }
+    }
+
+    const updatedSubEvents: SubEventInterface[] = [];
+    const subEventIdsToDelete = new Set(existingSubEventIds);
+    const newSubEventIds: number[] = [];
+
+
+    for (let subEvent of subEventsData) {
+      if (!existingSubEventIds.includes(subEvent._id)) {
+        if (mappedSubEventsCoverFiles[subEvent._id]) {
+          const coverImages = mappedSubEventsCoverFiles[subEvent._id];
+          const coverImgUploadedResponse =
+            await FirebaseStorage.uploadCoverImages(
+              `events/${eventId}/subevents/${subEvent._id}`,
+              coverImages
+            );
+
+          if (coverImgUploadedResponse.status === false) {
+            return ApiResponseHandler.error(
+              res,
+              `Failed to upload cover images for sub-event ${subEvent.name}. Try again later.`,
+              500
+            );
+          }
+
+          subEvent.cover_images = JSON.stringify(coverImgUploadedResponse.urls);
+        }
+
+        const newId = await eventInstance.createSubEventById(
+          mainEventData._id,
+          subEvent
+        );
+
+        subEvent._id = newId;
+        newSubEventIds.push(subEvent._id);
+      }
+
+      const subEventUpdate: SubEventInterface = {
+        ...subEvent,
+        start_time: moment(subEvent.start_time).format("HH:mm:ss"),
+        end_time: moment(subEvent.end_time).format("HH:mm:ss"),
+        starting_date: moment(subEvent.starting_date).format("YYYY-MM-DD"),
+        restrictions: JSON.stringify(subEvent.restrictions),
+      };
+
+      updatedSubEvents.push(subEventUpdate);
+      subEventIdsToDelete.delete(subEvent._id);
+    }
+
+    const response: any = await eventInstance.updateEvent(
+      eventId,
+      updatedMainEventData,
+      updatedSubEvents,
+      subEventIdsToDelete,
+      existingSubEventIds,
+      newSubEventIds
+    );
+
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        response.message ?? "Failed to update event",
+        500
+      );
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      { eventId, updatedMainEventData, updatedSubEvents },
+      "Event updated successfully."
+    );
+  } catch (err) {
+    return ApiResponseHandler.error(res, "Internal server error", 500);
   }
 };
 
@@ -333,7 +517,7 @@ export const createCategory = async (req: Request, res: Response) => {
         `categories/${categoryId}`,
         categoryImageFile
       );
-    if (imgUploadedResponse.status === false) {
+    if (!imgUploadedResponse.status) {
       return ApiResponseHandler.error(
         res,
         imgUploadedResponse.message ??
@@ -351,7 +535,7 @@ export const createCategory = async (req: Request, res: Response) => {
 
     const response: any = await eventInstance.createCategory(categoryData);
 
-    if (response.status === false) {
+    if (!response.status) {
       return ApiResponseHandler.error(
         res,
         response.message ?? "failed to create category. try after sometime",
@@ -422,7 +606,7 @@ export const updateCategoryByID = async (req: Request, res: Response) => {
       categoryUpdatedData
     );
 
-    if (response.status === false) {
+    if (!response.status) {
       return ApiResponseHandler.error(
         res,
         response.message ?? "failed to update category. try after sometime",
@@ -453,7 +637,7 @@ export const deteleCategoryByID = async (req: Request, res: Response) => {
 
     const categoryExists = await eventInstance.getCategoryById(req.body._id);
 
-    if (!categoryExists.status === false) {
+    if (!categoryExists.status) {
       return ApiResponseHandler.error(res, "Category not exists", 500);
     }
 
@@ -461,7 +645,7 @@ export const deteleCategoryByID = async (req: Request, res: Response) => {
       categoryExists.data._id
     );
 
-    if (response.status === false) {
+    if (!response.status) {
       return ApiResponseHandler.error(
         res,
         response.message ?? "failed to delete category. Try again!.",
@@ -487,7 +671,7 @@ export const getCategoryById = async (req: Request, res: Response) => {
 
     const response: any = await eventInstance.getCategoryById(req.body._id);
 
-    if (response.status === false) {
+    if (!response.status) {
       return ApiResponseHandler.error(
         res,
         `${response.message ?? "Category not exists"}`,
@@ -515,7 +699,7 @@ export const getAllCategories = async (req: Request, res: Response) => {
     return ApiResponseHandler.success(
       res,
       response.data ?? [],
-      response.message??'categories list successfully getted.',
+      response.message ?? "categories list successfully getted.",
       200
     );
   } catch (error: any) {
