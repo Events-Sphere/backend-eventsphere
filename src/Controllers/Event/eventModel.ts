@@ -157,7 +157,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
     const imgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadSingleImage(
-        `events/${data._id}`,
+        `events/main_${Date.now()}.jpg`,
         mainImgFile
       );
     if (imgUploadedResponse.status === false) {
@@ -171,7 +171,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
     const coverImgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadCoverImages(
-        `events/${data._id}/coverImages`,
+        `events/${data._id}/coverImages/cover_${data._id}_${Date.now()}.jpg`,
         coverImgFiles
       );
     if (coverImgUploadedResponse.status === false) {
@@ -204,7 +204,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
       const coverImgUploadedResponse: FileStorageResponse =
         await FirebaseStorage.uploadSubEventCoverImages(
-          `'events'/${data._id}/subevents/${subEvent._id}}`,
+          `'events'/${data._id}/subevents/${subEvent._id}}/cover_${idx}_${Date.now()}.jpg`,
           subEventCoverImgFile
         );
       if (coverImgUploadedResponse.status === false) {
@@ -216,7 +216,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       }
 
       totalAmount = totalAmount + subEvent.ticket_price;
-      const subEventId = subEvent._id ?? Math.floor(10000 + Math.random() * 90000);
+      const subEventId = subEvent._id ?? Date.now() + Math.floor(Math.random() * 1000);
       const subevent: SubEventInterface = {
         _id: subEventId,
         event_id: subEvent.event_id,
@@ -428,7 +428,7 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
           const coverImages = mappedSubEventsCoverFiles[subEvent._id];
           const coverImgUploadedResponse =
             await FirebaseStorage.uploadCoverImages(
-              `events/${eventId}/subevents/${subEvent._id}`,
+              `events/${eventId}/subevents/${subEvent._id}/cover_${subEvent._id}_${Date.now()}.jpg`,
               coverImages
             );
 

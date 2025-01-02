@@ -31,7 +31,7 @@ export const createCategory = async (req: Request, res: Response) => {
 
     const imgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadSingleImage(
-        `categories/${categoryId}`,
+        `categories/${categoryName}'_'${Date.now()}.jpg`,
         categoryImageFile
       );
 
@@ -98,7 +98,7 @@ export const updateCategoryByID = async (req: Request, res: Response) => {
     if (categoryImageFile) {
       const imgUploadedResponse: FileStorageResponse =
         await FirebaseStorage.uploadSingleImage(
-          `categories/${bodyData._id}`,
+          `categories/${bodyData._id}'_'${Date.now()}.jpg`,
           categoryImageFile
         );
 

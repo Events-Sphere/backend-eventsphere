@@ -13,10 +13,9 @@ const storage = admin.storage().bucket();
 
 export class FirebaseStorage {
   static uploadSingleImage = async (
-    baseUrl: string,
+    uniqueFileName: string,
     file: Express.Multer.File
   ): Promise<{ status: boolean; url?: string; message?: string }> => {
-    const uniqueFileName = `${baseUrl}/main_${Date.now()}.jpg`;
 
     try {
       const firebaseFile = storage.file(uniqueFileName);
@@ -42,7 +41,7 @@ export class FirebaseStorage {
   };
 
   static uploadCoverImages = async (
-    baseUrl: string,
+    uniqueFileName: string,
     files: Express.Multer.File[]
   ): Promise<{ status: boolean; urls?: string[]; message?: string }> => {
     try {
@@ -50,7 +49,6 @@ export class FirebaseStorage {
 
       await Promise.all(
         files.map(async (file, index) => {
-          const uniqueFileName = `${baseUrl}/cover_${index}_${Date.now()}.jpg`;
 
           const firebaseFile = storage.file(uniqueFileName);
 
