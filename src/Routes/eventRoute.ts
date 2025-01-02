@@ -13,6 +13,7 @@ router.post("/update", fileUploadInstance.middleware(), EventModel.updateEvent);
 router.get("/pending", EventModel.getPendingEventsById);
 router.get("/completed", EventModel.getCompletedEventsById);
 router.get("/active", EventModel.getActiveEventsById);
+router.get("/rejected", );
 
 router.get("/admin/pending", EventModel.getPendingEvents);
 router.get("/admin/completed", EventModel.getCompletedEvents);
