@@ -136,6 +136,16 @@ export class EventClass {
     return this.getEventsByStatus("active");
   };
 
+
+  getRejectedEventList = async (userId: number): Promise<any> => {
+    return this.getEventsByStatus("rejected", userId);
+  };
+
+  getAllRejectedEventList = async (): Promise<any> => {
+    return this.getEventsByStatus("rejected");
+  };
+
+
   // Generalized Fetch by Status
   private getEventsByStatus = async (
     status: string,
@@ -176,6 +186,82 @@ export class EventClass {
       };
     }
   };
+
+  getAllEventList = async (): Promise<any> => {
+    try {
+      const events = await db("events").select("*");
+  
+      if (!events || events.length === 0) {
+        return {
+          status: false,
+          message: "No events found.",
+          data: [],
+        };
+      }
+      const eventsWithSubEvents = await Promise.all(
+        events.map(async (event: any) => {
+          const subEventIds = JSON.parse(event.sub_event_items || "[]");
+          const subEvents = subEventIds.length
+            ? await db("subevents").whereIn("_id", subEventIds)
+            : [];
+          return { ...event, sub_events: subEvents };
+        })
+      );
+  
+      return {
+        status: true,
+        message: "All events retrieved successfully.",
+        data: eventsWithSubEvents,
+      };
+    } catch (error) {
+      console.error("Error fetching all events:", error);
+      return {
+        status: false,
+        message: "An error occurred while retrieving all events.",
+        data: [],
+      };
+    }
+  };
+
+  getAllEventsById = async (userId: number): Promise<any> => {
+    try {
+      const events = await db("events").where("org_id", userId).select("*");
+  
+      if (!events || events.length === 0) {
+        return {
+          status: false,
+          message: `No events found for user ID: ${userId}.`,
+          data: [],
+        };
+      }
+      const eventsWithSubEvents = await Promise.all(
+        events.map(async (event: any) => {
+          const subEventIds = JSON.parse(event.sub_event_items || "[]");
+          const subEvents = subEventIds.length
+            ? await db("subevents").whereIn("_id", subEventIds)
+            : [];
+          return { ...event, sub_events: subEvents };
+        })
+      );
+  
+      return {
+        status: true,
+        message: `Events for user ID: ${userId} retrieved successfully.`,
+        data: eventsWithSubEvents,
+      };
+    } catch (error) {
+      console.error(
+        `Error fetching events for user ID: ${userId}:`,
+        error
+      );
+      return {
+        status: false,
+        message: "An error occurred while retrieving events by user ID.",
+        data: [],
+      };
+    }
+  };
+  
 
   // Utility Methods
   updateOrganizationPendingEvent = async (

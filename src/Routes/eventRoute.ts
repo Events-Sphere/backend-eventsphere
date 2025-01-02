@@ -10,14 +10,17 @@ router.post("/create", fileUploadInstance.middleware(), EventModel.createEvent);
 router.post("/update", fileUploadInstance.middleware(), EventModel.updateEvent);
 
 //<---- Retrieve events------>
+router.get("/all-events",EventModel.getAllEventsbyId);
 router.get("/pending", EventModel.getPendingEventsById);
 router.get("/completed", EventModel.getCompletedEventsById);
 router.get("/active", EventModel.getActiveEventsById);
-router.get("/rejected", );
+router.get("/rejected",EventModel.getAllRejectedEventsById);
 
+router.get("/admin/all-events", EventModel.getAllEventsList);
 router.get("/admin/pending", EventModel.getPendingEvents);
 router.get("/admin/completed", EventModel.getCompletedEvents);
 router.get("/admin/active", EventModel.getActiveEvents);
+router.get("/admin/rejected", EventModel.getAllRejectedEventsById);
 
 router.post("/search", EventModel.searchEvents);
 router.post("/search-by-status", EventModel.searchEventsByStatus);

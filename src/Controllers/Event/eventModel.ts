@@ -58,6 +58,7 @@ const isValidSubEventData = (subEvent: any): subEvent is SubEventInterface => {
     "description",
     "start_time",
     "end_time",
+    "restrictions",
     "starting_date",
     "hostedBy",
     "host_email",
@@ -66,7 +67,6 @@ const isValidSubEventData = (subEvent: any): subEvent is SubEventInterface => {
     "ticket_quantity",
     "ticket_type",
     "ticket_price",
-    "restrictions",
   ];
 
   for (const field of requiredFields) {
@@ -777,14 +777,13 @@ export const searchEvents = async (req: Request, res: Response) => {
   }
 };
 
-
 export const searchEventsByStatus = async (req: Request, res: Response) => {
   try {
     const { queryText, status } = req.body;
 
     const response = await eventInstance.searchEventsByStatus({
       queryText,
-      status
+      status,
     });
 
     if (!response.status) {
@@ -807,7 +806,6 @@ export const searchEventsByStatus = async (req: Request, res: Response) => {
   }
 };
 
-
 export const updateEventStatus = async (req: Request, res: Response) => {
   try {
     const { data } = req.body;
@@ -821,15 +819,23 @@ export const updateEventStatus = async (req: Request, res: Response) => {
     const eventResponse = await eventInstance.getEventById(eventId);
 
     if (!eventResponse.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.EVENT_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.EVENT_NOT_FOUND,
+        404
+      );
     }
 
     const requestApproveEventIds: number[] = data.approveEventIds || [];
-    const requestRejectEventIds: number[] = Object.keys(data.rejectEvents || {}).map(Number);
-    const requestRejectEventReasons : string[] = Object.values(data.rejectEvents || {}).map(String);
+    const requestRejectEventIds: number[] = Object.keys(
+      data.rejectEvents || {}
+    ).map(Number);
+    const requestRejectEventReasons: string[] = Object.values(
+      data.rejectEvents || {}
+    ).map(String);
 
-
-    const totalIds = requestApproveEventIds.length + requestRejectEventIds.length;
+    const totalIds =
+      requestApproveEventIds.length + requestRejectEventIds.length;
 
     if (eventResponse.data.sub_event_items.length !== totalIds) {
       return ApiResponseHandler.error(res, COMMON_MESSAGES.MISMATCHED_IDS, 400);
@@ -838,12 +844,16 @@ export const updateEventStatus = async (req: Request, res: Response) => {
     const response = await eventInstance.updateEventStatus({
       eventId,
       approveIds: requestApproveEventIds,
-      rejectIds:  requestRejectEventIds,
-      reasons : requestRejectEventReasons
+      rejectIds: requestRejectEventIds,
+      reasons: requestRejectEventReasons,
     });
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.APPROVE_FAILURE, 500);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.APPROVE_FAILURE,
+        500
+      );
     }
 
     return ApiResponseHandler.success(
@@ -853,12 +863,132 @@ export const updateEventStatus = async (req: Request, res: Response) => {
       200
     );
   } catch (error: any) {
-    console.error('Error updating event status:', error);
+    console.error("Error updating event status:", error);
     return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
 
+export const getAllRejectedEventsList = async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
+    }
 
+    const response = await eventInstance.getAllRejectedEventList();
 
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
+    }
 
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Rejected events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+export const getAllRejectedEventsById = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
+    }
 
+    const response = await eventInstance.getRejectedEventList(
+      Number(req.user.id)
+    );
+
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Active events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const getAllEventsList = async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
+    }
+
+    const response = await eventInstance.getAllEventList();
+
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const getAllEventsbyId = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
+    }
+
+    const response = await eventInstance.getAllEventsById(Number(req.user.id));
+
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
