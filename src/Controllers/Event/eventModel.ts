@@ -152,7 +152,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
     const imgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadSingleImage(
-        `EVENTS/MAIN EVENT IMAGES/mainImg_${Date.now()}.jpg`,
+        `EVENTS/MAIN EVENT IMAGES`,
         mainImgFile
       );
     if (imgUploadedResponse.status === false) {
@@ -166,7 +166,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
     const coverImgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadCoverImages(
-        `EVENTS/COVER IMAGES/cover_${Date.now()}.jpg`,
+        `EVENTS/COVER IMAGES`,
         coverImgFiles
       );
     if (coverImgUploadedResponse.status === false) {
@@ -411,9 +411,7 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
           const coverImages = mappedSubEventsCoverFiles[subEvent._id];
           const coverImgUploadedResponse =
             await FirebaseStorage.uploadCoverImages(
-              `EVENTS/SUB EVENT IMAGES/subevent_cover_img${
-                subEvent._id
-              }_${Date.now()}.jpg`,
+              `EVENTS/SUB EVENT IMAGES`,
               coverImages
             );
 
