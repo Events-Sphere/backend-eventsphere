@@ -1,4 +1,4 @@
-import { ApiResponseHandler } from "../../Middleware/Api-response-handler";
+import { ApiResponseHandler } from "../../Middleware/apiResponseMiddleware";
 import { Request , Response } from "express";
 import { User } from "./UserClass";
 

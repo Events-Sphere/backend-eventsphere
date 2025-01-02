@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ApiResponseHandler } from "../../Middleware/Api-response-handler";
+import { ApiResponseHandler } from "../../Middleware/apiResponseMiddleware";
 import { EventClass } from "../Event/eventClass";
 import { BookingsClass } from "./bookingsClass";
 import { BookingInterface } from "../../Interfaces/bookingsInterface";

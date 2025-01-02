@@ -1,6 +1,6 @@
 import { AuthClass } from "./authClass";
 import { Request, Response } from "express";
-import { ApiResponseHandler } from "../../Middleware/Api-response-handler";
+import { ApiResponseHandler } from "../../Middleware/apiResponseMiddleware";
 import { Validators } from "../../Utililes/validators";
 import { PasswordEncryption } from "../../Utililes/passwordEncryption";
 import db from "../../Config/knex";

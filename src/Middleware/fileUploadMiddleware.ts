@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { ApiResponseHandler } from "./Api-response-handler";
+import { ApiResponseHandler } from "./apiResponseMiddleware";
 import multer, { Multer } from "multer";
 
 export class FileUploadMiddleware {

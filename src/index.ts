@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 import cors from "cors";
 import V1 from "./V1/V1";
 import path from "path";
-import { ApiResponseHandler } from "./Middleware/Api-response-handler";
+import { ApiResponseHandler } from "./Middleware/apiResponseMiddleware";
 import { connectToDatabase } from "./Config/knex";
 import AuthRouter from './Routes/authRoute';
 

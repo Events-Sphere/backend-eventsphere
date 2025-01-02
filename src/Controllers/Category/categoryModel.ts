@@ -1,4 +1,4 @@
-import { ApiResponseHandler } from "../../Middleware/Api-response-handler";
+import { ApiResponseHandler } from "../../Middleware/apiResponseMiddleware";
 import { Request, Response } from "express";
 import { FirebaseStorage } from "../../Services/Storage";
 import { categoryInterface } from "../../Interfaces/categoryInterface";

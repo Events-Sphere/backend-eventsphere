@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { ApiResponseHandler } from "../Middleware/Api-response-handler";
+import { ApiResponseHandler } from "../Middleware/apiResponseMiddleware";
 import jwt from "jsonwebtoken";
 import { Iuser } from "../types/express";
 import db from "../Config/knex";
