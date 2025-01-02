@@ -13,6 +13,17 @@ export interface UserSignupInterface {
   password: string;
 }
 
+export interface VerifyUserIdentityInterface {
+  name:string;
+  email: string; 
+  mobile:string;
+  ccode:string;
+  role:string;
+  location:string;
+  password: string;
+  proof:string
+}
+
 export interface OrganizerSignupInterface {
   name:string;
   email: string; 
@@ -29,5 +40,16 @@ export interface OrganizerSignupInterface {
   collegeNoc:string;
 
 }
-
+export interface SquardInterface {
+  name:string;
+  email: string; 
+  mobile:string;
+  ccode:string;
+  role:string;
+  location:string;
+  password: string;
+  proof:string[];
+  profile:string;
+  status:string;
+}
 

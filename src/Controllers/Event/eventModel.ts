@@ -461,7 +461,7 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
       updatedSubEvents.push(subEventUpdate);
       subEventIdsToDelete.delete(subEvent._id);
     }
-
+            
     const response: any = await eventInstance.updateEvent(
       eventId,
       updatedMainEventData,

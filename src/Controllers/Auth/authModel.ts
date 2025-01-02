@@ -27,9 +27,16 @@ export const login = async (req: Request, res: Response) => {
       return ApiResponseHandler.warning(res, "Enter valid email", 401);
     }
 
-    const responseData: any[] = await authInstance.userLogin(userData);
+    const isUserExists: any = await authInstance.userLogin(userData);
+    if (isUserExists.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
 
-    if (responseData.length <= 0) {
+    if (isUserExists.data.length <= 0) {
       return ApiResponseHandler.warning(
         res,
         "No user found with provided credentials",
@@ -39,7 +46,7 @@ export const login = async (req: Request, res: Response) => {
 
     const isPasswordCorrect = await PasswordEncryption.comparePassword(
       userData.password,
-      responseData[0].password
+      isUserExists.data[0].password
     );
 
     if (!isPasswordCorrect) {
@@ -61,6 +68,8 @@ export const login = async (req: Request, res: Response) => {
 export const signup = async (req: Request, res: Response) => {
   try {
     const userData = req.body;
+
+    // PENDING WORK --> upload organizer proof(id card) and noc in firebase
 
     if (!userData.role) {
       return ApiResponseHandler.warning(res, "All fields are required", 401);
@@ -105,11 +114,18 @@ export const signup = async (req: Request, res: Response) => {
       );
     }
 
-    const isUserExists: any[] = await authInstance.isUserExists(
+    const isUserExists: any = await authInstance.isUserExistsOnMobileOrEmail(
       userData.email,
       userData.mobile
     );
-    if (isUserExists.length > 0) {
+    if (isUserExists.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+    if (isUserExists.data.length > 0) {
       return ApiResponseHandler.warning(
         res,
         "Email or Mobile already in use",
@@ -122,13 +138,26 @@ export const signup = async (req: Request, res: Response) => {
     );
     userData.password = hashedPassword;
 
-    let responseData: any[];
+    let responseData: any;
     if (userData.role === "organizer") {
       responseData = await authInstance.organizerSignup(userData);
+      if (responseData.status === false) {
+        return ApiResponseHandler.error(
+          res,
+          "Something went wrong. Try again!",
+          500
+        );
+      }
     } else {
-      responseData = await authInstance.userSignup(userData, res);
+      responseData = await authInstance.userSignup(userData);
+      if (responseData.status === false) {
+        return ApiResponseHandler.error(
+          res,
+          "Something went wrong. Try again!",
+          500
+        );
+      }
     }
-
     return ApiResponseHandler.success(res, null, "Signup Successful", 200);
   } catch (error) {
     return ApiResponseHandler.error(res, "Internal server error", 501);
@@ -140,6 +169,12 @@ export const signup = async (req: Request, res: Response) => {
 export const verifyUserIdentity = async (req: Request, res: Response) => {
   try {
     const userData = req.body;
+    const user = req.user;
+    if (!user) {
+      return ApiResponseHandler.warning(res, "Something went wrong", 500);
+    }
+
+    // PENDING WORK --> upload user proof(id card) in firebase
 
     const requiredFields = [
       "name",
@@ -170,19 +205,24 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
       );
     }
 
-    const user = req.user;
-    const isUserAlready = await db
-      .select("*")
-      .from("users")
-      .where({ _id: user!.id, role: user!.role });
-    if (isUserAlready[0].status === "pending") {
+    const isUserVerified = await authInstance.isVerifiedUser(user!.id);
+    if (isUserVerified.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+
+    if (isUserVerified.data[0].status === "pending") {
       return ApiResponseHandler.error(
         res,
         "User is verified request is pending..",
         401
       );
     }
-    if (isUserAlready[0].status === "active") {
+
+    if (isUserVerified.data[0].status === "active") {
       return ApiResponseHandler.error(
         res,
         "User is already verified user",
@@ -190,11 +230,21 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
       );
     }
 
-    const isEmailMobileExists = await db
-      .select("*")
-      .from("users")
-      .whereNot({ _id: user!.id });
-    if (isEmailMobileExists.length > 0) {
+    const isEmailMobileExists =
+      await authInstance.isUserExistsOnMobileOrEmailWithoutSpecificId(
+        user!.id,
+        userData.email,
+        userData.mobile
+      );
+
+    if (isEmailMobileExists.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+    if (isEmailMobileExists.data.length > 0) {
       return ApiResponseHandler.warning(
         res,
         "Email or Mobile already in use",
@@ -202,17 +252,22 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
       );
     }
 
-    const results = await db("users").where({ _id: user!.id }).update({
-      name: userData.name,
-      email: userData.email,
-      mobile: userData.mobile,
-      c_code: userData.ccode,
-      role: userData.role,
-      password: userData.password,
-      location: userData.location,
-      proof: userData.proof,
-    });
+    const hashedPassword = await PasswordEncryption.hashPassword(
+      userData.password
+    );
+    userData.password = hashedPassword;
 
+    const responseData = await authInstance.updateUserIdentity(
+      user!.id,
+      userData
+    );
+    if (responseData.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
     return ApiResponseHandler.success(
       res,
       null,
@@ -223,61 +278,67 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
     return ApiResponseHandler.error(res, "Internal server error", 501);
   }
 };
+
 //CHANGE-PASSWORD ENDPOINT--> http://localhost:3000/
 
 export const changePassword = async (req: Request, res: Response) => {
   try {
     const userData = req.body;
-const user=req.user;
+    const user = req.user;
+    if (!user) {
+      return ApiResponseHandler.warning(res, "Something went wrong", 500);
+    }
     const requiredFields = [
       "currrentPassword",
       "newPassword",
-      "confirmPassword"
+      "confirmPassword",
     ];
-
     if (!isValidData(userData, requiredFields)) {
       return ApiResponseHandler.warning(res, "All fields are required", 401);
     }
     if (userData.newPassword !== userData.confirmPassword) {
-      return ApiResponseHandler.warning(res, "New password and confirm password does not match", 400);
+      return ApiResponseHandler.warning(
+        res,
+        "New password and confirm password does not match",
+        400
+      );
     }
 
-    const isUser = await db
-      .select("*")
-      .from("users")
-      .where({ _id: user!.id, role: user!.role });
+    const isUserExistsOnIdAndRole = await authInstance.isUserExistsOnIdAndRole(
+      user!.id,
+      user!.role
+    );
+
+    if (isUserExistsOnIdAndRole.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+
+    if (isUserExistsOnIdAndRole.data.length > 0) {
+      return ApiResponseHandler.warning(res, "user not found", 404);
+    }
 
     const isPasswordCorrect = await PasswordEncryption.comparePassword(
-      userData.password,
-      isUser[0].password
+      userData.currentPassword,
+      isUserExistsOnIdAndRole.data[0].password
     );
 
     if (!isPasswordCorrect) {
-      return ApiResponseHandler.warning(
-        res,
-        "current password wrong",
-        401
-      );
+      return ApiResponseHandler.warning(res, "current password wrong", 401);
     }
+
     const hashedPassword = await PasswordEncryption.hashPassword(
       userData.newPassword
     );
 
     const results = await db("users").where({ _id: user!.id }).update({
       password: hashedPassword,
-     
     });
 
-    return ApiResponseHandler.success(
-      res,
-      null,
-      "User password changed",
-      200
-    );
-
-
-
-
+    return ApiResponseHandler.success(res, null, "User password changed", 200);
   } catch (error) {
     return ApiResponseHandler.error(res, "Internal server error", 501);
   }
@@ -287,6 +348,13 @@ const user=req.user;
 
 export const updateProfilePhoto = async (req: Request, res: Response) => {
   try {
+    const userData = req.body;
+    const user = req.user;
+    // PENDING WORK --> upload user profile and delete old profile in firebase
+
+    if (!user) {
+      return ApiResponseHandler.warning(res, "Something went wrong", 500);
+    }
   } catch (error) {
     return ApiResponseHandler.error(res, "Internal server error", 501);
   }
@@ -296,33 +364,403 @@ export const updateProfilePhoto = async (req: Request, res: Response) => {
 
 export const updateUserDetails = async (req: Request, res: Response) => {
   try {
+    // PENDING WORK
   } catch (error) {
     return ApiResponseHandler.error(res, "Internal server error", 501);
   }
 };
 
-//ADMIN-->GET-INTERNAL-TEAMS--> http://localhost:3000/
+//ADMIN-->GET-ALL-USER--> http://localhost:3000/
 
-//ADMIN-->ADD-INTERNAL-TEAM--> http://localhost:3000/
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const users = await authInstance.getAllUsers("user");
 
-//ADMIN-->UPDATE-INTERNAL-TEAM--> http://localhost:3000/
-
-//ADMIN-->DELETE-INTERNAL-TEAM--> http://localhost:3000/
-
-//ADMIN-->GET-ALL-USERS--> http://localhost:3000/
+    return ApiResponseHandler.success(res, users.data, "Users", 200);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 
 //ADMIN-->GET-SINGLE-USER--> http://localhost:3000/
 
-//ADMIN-->APPROVE-USER--> http://localhost:3000/
+export const getSingleUser = async (req: Request, res: Response) => {
+  try {
+    const id = req.body.id;
+    if (!id) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
 
-//ADMIN-->REJECT-USER--> http://localhost:3000/
+    const users = await authInstance.getSingleUser("user", id);
+    if (users.data.length > 0) {
+      return ApiResponseHandler.warning(res, "user not found", 404);
+    }
+
+    return ApiResponseHandler.success(res, users.data, "User", 200);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 
 //ADMIN-->DELETE-USER--> http://localhost:3000/
 
+export const deleteSingleUser = async (req: Request, res: Response) => {
+  try {
+    // PENDING WORK --> delete user profile in firebase
+    const id = req.body.id;
+    if (!id) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
+
+    const deleteUser = await authInstance.deleteUser("user", id);
+
+    if (deleteUser.data > 0) {
+      return ApiResponseHandler.success(res, null, "User deleted", 200);
+    } else {
+      return ApiResponseHandler.warning(res, "user not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
 //ADMIN-->GET-ALL-ORGANIZERS--> http://localhost:3000/
 
+export const getAllOrganizers = async (req: Request, res: Response) => {
+  try {
+    const organizers = await authInstance.getAllUsers("organizer");
+    //PENDING --> Combine two tables
+    return ApiResponseHandler.success(res, organizers.data, "Organizers", 200);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+//ADMIN-->GET-SINGLE-ORGANIZERS--> http://localhost:3000/
+
+export const getSingleOrganizer = async (req: Request, res: Response) => {
+  try {
+    const id = req.body.id;
+    if (!id) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
+    //PENDING --> Combine two tables
+
+    const organizer = await authInstance.getSingleUser("organizer", id);
+    if (organizer.data.length > 0) {
+      return ApiResponseHandler.warning(res, "organizer not found", 404);
+    }
+
+    return ApiResponseHandler.success(res, organizer.data, "User", 200);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+//ADMIN-->DELETE-SINGLE-ORGANIZERS--> http://localhost:3000/
+
+export const deleteSingleOrganizer = async (req: Request, res: Response) => {
+  try {
+    // PENDING WORK --> delete organizer profile in firebase
+    const id = req.body.id;
+    if (!id) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
+    //PENDING --> Combine two tables
+
+    const Organiser = await authInstance.deleteUser("organizer", id);
+
+    if (Organiser.data > 0) {
+      return ApiResponseHandler.success(res, null, "Orgnaizer deleted", 200);
+    } else {
+      return ApiResponseHandler.warning(res, "Orgnaizer not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+//ADMIN-->GET-ALL-SQUARDS--> http://localhost:3000/
+
+export const getAllSquards = async (req: Request, res: Response) => {
+  try {
+    const squards = await authInstance.getAllUsers("squard");
+
+    return ApiResponseHandler.success(res, squards.data, "Squards", 200);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+//ADMIN-->GET-SINGLE-SQUARDS--> http://localhost:3000/
+
+export const getSingleSquards = async (req: Request, res: Response) => {
+  try {
+    const id = req.body.id;
+    if (!id) {
+      return ApiResponseHandler.warning(res, "Squard id missing", 400);
+    }
+
+    const squard = await authInstance.getSingleUser("squard", id);
+    if (squard.data.length > 0) {
+      return ApiResponseHandler.warning(res, "squard not found", 404);
+    }
+
+    return ApiResponseHandler.success(res, squard.data, "User", 200);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+//ADMIN-->DELETE-SINGLE-SQUARDS--> http://localhost:3000/
+
+export const deleteSingleSquard = async (req: Request, res: Response) => {
+  try {
+    // PENDING WORK --> delete user profile in firebase
+
+    const id = req.body.id;
+    if (!id) {
+      return ApiResponseHandler.warning(res, "Squard id missing", 400);
+    }
+
+    const squard = await authInstance.deleteUser("squard", id);
+
+    if (squard.data > 0) {
+      return ApiResponseHandler.success(res, null, "Squard deleted", 200);
+    } else {
+      return ApiResponseHandler.warning(res, "Squard not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
 //ADMIN-->APPROVE-ORGANIZER--> http://localhost:3000/
+//ADMIN-->APPROVE-USER--> http://localhost:3000/
+
+export const approveUser = (req: Request, res: Response) => {
+  try {
+    const approvedBy = req.user!.id;
+    if (!approvedBy) {
+      return ApiResponseHandler.warning(res, "Approver id missing", 400);
+    }
+
+    const userId = req.body.id;
+    if (!userId) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
+    const user: any = authInstance.updateUserStatus(
+      "approve",
+      userId,
+      approvedBy
+    );
+    if (user > 0) {
+      return ApiResponseHandler.success(res, null, "User approved", 200);
+    } else {
+      return ApiResponseHandler.warning(res, "User not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 
 //ADMIN-->REJECT-ORGANIZER--> http://localhost:3000/
+//ADMIN-->REJECT-USER--> http://localhost:3000/
 
-//ADMIN-->DELETE-ORGANIZER--> http://localhost:3000/
+export const rejectUser = (req: Request, res: Response) => {
+  try {
+    const approvedBy = req.user!.id;
+    if (!approvedBy) {
+      return ApiResponseHandler.warning(res, "Approver id missing", 400);
+    }
+
+    const userId = req.body.id;
+    const denialReason = req.body.denialReason;
+    if (!userId) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
+    const user: any = authInstance.updateUserStatus(
+      "reject",
+      userId,
+      approvedBy,
+      denialReason
+    );
+    if (user > 0) {
+      return ApiResponseHandler.success(res, null, "User rejected", 200);
+    } else {
+      return ApiResponseHandler.warning(res, "User not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+//ADMIN-->ADD-INTERNAL-TEAM--> http://localhost:3000/
+
+export const createSquard = async (req: Request, res: Response) => {
+  try {
+    //PENDING-->  upload profile pic in firestore
+    const approvedBy = req.user!.id;
+    if (!approvedBy) {
+      return ApiResponseHandler.warning(res, "Approver id missing", 400);
+    }
+
+    const squardData = req.body;
+
+    const requiredFields = [
+      "name",
+      "email",
+      "password",
+      "c_code",
+      "mobile",
+      "profile",
+      "role",
+      "location",
+      "status",
+    ];
+
+    if (!isValidData(squardData, requiredFields)) {
+      return ApiResponseHandler.warning(res, "All fields are required", 401);
+    }
+
+    if (!Validators.isValidEmail(squardData.email)) {
+      return ApiResponseHandler.warning(res, "Enter valid email", 401);
+    }
+
+    if (!Validators.isValidMobile(squardData.mobile)) {
+      return ApiResponseHandler.warning(res, "Enter valid mobile", 401);
+    }
+
+    if (!Validators.isValidPassword(squardData.password)) {
+      return ApiResponseHandler.warning(
+        res,
+        "Password must be at least 8 characters long, with at least one uppercase letter, one lowercase letter, one number, and one special character (e.g., !@#$%^&*())",
+        401
+      );
+    }
+
+    const isSquardExists: any = await authInstance.isUserExistsOnMobileOrEmail(
+      squardData.email,
+      squardData.mobile
+    );
+    if (isSquardExists.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+    if (isSquardExists.data.length > 0) {
+      return ApiResponseHandler.warning(
+        res,
+        "Email or Mobile already in use",
+        401
+      );
+    }
+
+    const hashedPassword = await PasswordEncryption.hashPassword(
+      squardData.password
+    );
+    squardData.password = hashedPassword;
+
+    const squard = await authInstance.createSquard(squardData);
+    if (squard.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+
+    return ApiResponseHandler.success(res, null, "Squard created", 201);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+//ADMIN-->UPDATE-INTERNAL-TEAM--> http://localhost:3000/
+
+export const updateSquard = async (req: Request, res: Response) => {
+  try {
+    //PENDING-->  upload profile pic in firestore
+    const approvedBy = req.user!.id;
+    if (!approvedBy) {
+      return ApiResponseHandler.warning(res, "Approver id missing", 400);
+    }
+
+    const squardData = req.body;
+
+    const requiredFields = [
+      "name",
+      "email",
+      "password",
+      "c_code",
+      "mobile",
+      "role",
+      "location",
+      "status",
+    ];
+
+    if (!isValidData(squardData, requiredFields)) {
+      return ApiResponseHandler.warning(res, "All fields are required", 401);
+    }
+
+    if (!Validators.isValidEmail(squardData.email)) {
+      return ApiResponseHandler.warning(res, "Enter valid email", 401);
+    }
+
+    if (!Validators.isValidMobile(squardData.mobile)) {
+      return ApiResponseHandler.warning(res, "Enter valid mobile", 401);
+    }
+
+    if (!Validators.isValidPassword(squardData.password)) {
+      return ApiResponseHandler.warning(
+        res,
+        "Password must be at least 8 characters long, with at least one uppercase letter, one lowercase letter, one number, and one special character (e.g., !@#$%^&*())",
+        401
+      );
+    }
+
+    const isSquardExists: any =
+      await authInstance.isUserExistsOnMobileOrEmailWithoutSpecificId(
+        squardData.userId,
+        squardData.email,
+        squardData.mobile
+      );
+    if (isSquardExists.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+    if (isSquardExists.data.length > 0) {
+      return ApiResponseHandler.warning(
+        res,
+        "Email or Mobile already in use",
+        401
+      );
+    }
+
+    const hashedPassword = await PasswordEncryption.hashPassword(
+      squardData.password
+    );
+    squardData.password = hashedPassword;
+
+    const squard: any = await authInstance.updateSquard(squardData);
+    if (squard.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+    if (squard > 0) {
+      return ApiResponseHandler.success(res, null, "Squard created", 201);
+    } else {
+      return ApiResponseHandler.warning(res, "Squard not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
