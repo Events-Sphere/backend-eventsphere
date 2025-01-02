@@ -8,7 +8,7 @@ const router = Router();
 router.post("/login", AuthModel.login);
 router.post("/signup", AuthModel.signup);
 
-router.post("/verify",Authenticate.isAuthenticated,Authenticate.isAthorized(["user"]));
+
 
 
 

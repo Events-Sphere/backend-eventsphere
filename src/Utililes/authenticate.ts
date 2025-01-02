@@ -5,7 +5,8 @@ import { Iuser } from "../types/express";
 import db from "../Config/knex";
 
 export class Authenticate {
-  static async isAuthenticated(
+  
+  static async generateToken(
     req: Request,
     res: Response,
     next: NextFunction
@@ -31,6 +32,11 @@ export class Authenticate {
       return ApiResponseHandler.error(res, "Internal server error", 501);
     }
   }
+
+
+
+
+
 
   static isAthorized(roles: string[]) {
     return async (req: Request, res: Response, next: NextFunction) => {

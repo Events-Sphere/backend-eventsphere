@@ -4,6 +4,7 @@ import { ApiResponseHandler } from "../../Middleware/apiResponseMiddleware";
 import { Validators } from "../../Utililes/validators";
 import { PasswordEncryption } from "../../Utililes/passwordEncryption";
 import db from "../../Config/knex";
+import { FirebaseStorage } from "../../Services/Storage";
 
 const authInstance = new AuthClass();
 
@@ -12,6 +13,19 @@ const isValidData = (data: any, fields: string[]): boolean => {
     (field) => typeof data[field] === "string" && data[field].trim() !== ""
   );
 };
+
+interface ParsedFiles {
+noc: any | null;
+  proof: any[];
+}
+
+interface FileStorageResponse {
+  status: boolean;
+  message?: string;
+  url?: any;
+  urls?: any;
+}
+
 
 //LOGIN ENDPOINT--> http://localhost:3000/auth/login
 
@@ -94,7 +108,11 @@ export const signup = async (req: Request, res: Response) => {
             "collegeNoc",
           ];
 
-    if (!isValidData(userData, requiredFields)) {
+          if (userData.role === "organizer" && !req.body.files) {
+            return ApiResponseHandler.warning(res, "All fields are required", 401);
+          }
+
+    if (!isValidData(userData, requiredFields) || !req.body.files) {
       return ApiResponseHandler.warning(res, "All fields are required", 401);
     }
 
@@ -140,6 +158,53 @@ export const signup = async (req: Request, res: Response) => {
 
     let responseData: any;
     if (userData.role === "organizer") {
+
+      const imageList: ParsedFiles= {
+        proof: [],
+        noc:null,  
+      };
+
+      if (Array.isArray(req.body.files)) {
+        (req.body.files as Express.Multer.File[]).forEach((file) => {
+          if (file.fieldname === "noc") {
+            imageList.noc = file;
+          } else if (file.fieldname === "proof") {
+            imageList.proof.push(file);
+          } 
+        });
+      } else {
+        return ApiResponseHandler.error(res, "Image files not found", 400);
+      }
+      const nocImgUploadedResponse: FileStorageResponse =
+            await FirebaseStorage.uploadSingleImage(
+              `DOCUMENTS/NOC/noc_${Date.now()}_.pdf`,
+              imageList.noc
+            );
+          if (nocImgUploadedResponse.status === false) {
+            return ApiResponseHandler.error(
+              res,
+              nocImgUploadedResponse.message ??
+                "failed to upload NOC . try again!",
+              500
+            );
+          }
+          const proofImgUploadedResponse: FileStorageResponse =
+                await FirebaseStorage.uploadCoverImages(
+                  `USERS/PROOF/proof_${Date.now()}.jpg`,
+                  imageList.proof
+                );
+              if (proofImgUploadedResponse.status === false) {
+                return ApiResponseHandler.error(
+                  res,
+                  "failed to upload proof images. try again later",
+                  500
+                );
+              }
+
+
+
+
+
       responseData = await authInstance.organizerSignup(userData);
       if (responseData.status === false) {
         return ApiResponseHandler.error(
