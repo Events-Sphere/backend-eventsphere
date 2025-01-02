@@ -34,5 +34,10 @@ export const COMMON_MESSAGES = {
   POPULAR_EVENTS_NOT_FOUND: "No popular events found.",
   UPCOMING_EVENTS_NOT_FOUND: "No upcoming events found.",
   EVENTS_NOT_FOUND: "No events found.",
-  
+  APPROVE_FAILURE: "Failed to approve event",
+  REJECTION_FAILURE : "Failed to reject event",
+  APPROVE_SUCCESS: "Event approved successfully",
+  REJECTION_SUCCESS : "Event rejected successfully",
+  MISMATCHED_IDS : "The provided IDs do not match the expected sub-event IDs for the event."
+
 };

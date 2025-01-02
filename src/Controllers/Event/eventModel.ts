@@ -776,3 +776,58 @@ export const searchEvents = async (req: Request, res: Response) => {
     return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
+
+export const updateEventStatus = async (req: Request, res: Response) => {
+  try {
+    const { data } = req.body;
+
+    if (!data) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.MISSING_DATA, 400);
+    }
+
+    const eventId = Number(data.eventId);
+
+    const eventResponse = await eventInstance.getEventById(eventId);
+
+    if (!eventResponse.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.EVENT_NOT_FOUND, 404);
+    }
+
+    const requestApproveEventIds: number[] = data.approveEventIds || [];
+    const requestRejectEventIds: number[] = Object.keys(data.rejectEvents || {}).map(Number);
+    const requestRejectEventReasons : string[] = Object.values(data.rejectEvents || {}).map(String);
+
+
+    const totalIds = requestApproveEventIds.length + requestRejectEventIds.length;
+
+    if (eventResponse.data.sub_event_items.length !== totalIds) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.MISMATCHED_IDS, 400);
+    }
+
+    const response = await eventInstance.updateEventStatus({
+      eventId,
+      approveIds: requestApproveEventIds,
+      rejectIds:  requestRejectEventIds,
+      reasons : requestRejectEventReasons
+    });
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.APPROVE_FAILURE, 500);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      null,
+      COMMON_MESSAGES.APPROVE_SUCCESS,
+      200
+    );
+  } catch (error: any) {
+    console.error('Error updating event status:', error);
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+
+
+
+
