@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import serviceAccount from "../../stuhub-36067-firebase-adminsdk-xor75-e02a643b9e.json";
 import * as dotenv from "dotenv";
+import { v4 as uuidv4 } from "uuid";
 
 dotenv.config();
 
@@ -13,11 +14,11 @@ const storage = admin.storage().bucket();
 
 export class FirebaseStorage {
   static uploadSingleImage = async (
-    uniqueFileName: string,
+    baseUrl: string,
     file: Express.Multer.File
   ): Promise<{ status: boolean; url?: string; message?: string }> => {
-
     try {
+      const uniqueFileName = `${baseUrl}/${uuidv4()}.jpg`;
       const firebaseFile = storage.file(uniqueFileName);
 
       await firebaseFile.save(file.buffer, {
@@ -41,15 +42,14 @@ export class FirebaseStorage {
   };
 
   static uploadCoverImages = async (
-    uniqueFileName: string,
+    baseUrl: string,
     files: Express.Multer.File[]
   ): Promise<{ status: boolean; urls?: string[]; message?: string }> => {
     try {
       const urls: string[] = [];
-
       await Promise.all(
-        files.map(async (file, index) => {
-
+        files.map(async (file) => {
+          const uniqueFileName = `${baseUrl}/${uuidv4()}.jpg`;
           const firebaseFile = storage.file(uniqueFileName);
 
           await firebaseFile.save(file.buffer, {
@@ -77,7 +77,7 @@ export class FirebaseStorage {
   };
 
   static uploadSubEventCoverImages = async (
-    uniqueFileName: string,
+    baseUrl: string,
     files: Express.Multer.File[]
   ): Promise<{ status: boolean; urls?: string[]; message?: string }> => {
     try {
@@ -85,6 +85,7 @@ export class FirebaseStorage {
 
       await Promise.all(
         files.map(async (file) => {
+          const uniqueFileName = `${baseUrl}/${uuidv4()}.jpg`;
           const firebaseFile = storage.file(uniqueFileName);
 
           await firebaseFile.save(file.buffer, {
@@ -107,7 +108,10 @@ export class FirebaseStorage {
       return { status: true, urls };
     } catch (error) {
       console.error(`Error uploading sub-event cover images : `, error);
-      return { status: false, message: "Failed to upload sub-event cover images" };
+      return {
+        status: false,
+        message: "Failed to upload sub-event cover images",
+      };
     }
   };
 

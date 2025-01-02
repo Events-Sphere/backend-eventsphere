@@ -9,6 +9,7 @@ const fileUploadInstance = new FileUploadMiddleware();
 router.post("/create", fileUploadInstance.middleware(), EventModel.createEvent);
 router.post("/update", fileUploadInstance.middleware(), EventModel.updateEvent);
 
+//<---- Retrieve events------>
 router.get("/pending", EventModel.getPendingEventsById);
 router.get("/completed", EventModel.getCompletedEventsById);
 router.get("/active", EventModel.getActiveEventsById);
@@ -22,5 +23,11 @@ router.post("/search", EventModel.searchEvents);
 router.get("/by-category-name", EventModel.getEventsByCategoryName);
 router.get("/popular", EventModel.getPopularEvents);
 router.get("/upcoming", EventModel.getUpcomingEvents);
+
+
+
+//<---- Events decisions [aprovel/rejection] routes ------>
+router.post("/status-update" , EventModel.updateEventStatus);
+
 
 export default router;

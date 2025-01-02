@@ -639,4 +639,58 @@ export class EventClass {
       };
     }
   };
+
+  updateEventStatus = async ({
+    eventId,
+    approveIds,
+    rejectIds,
+    reasons,
+  }: {
+    eventId: number;
+    approveIds: number[];
+    rejectIds: number[];
+    reasons : string[]
+  }): Promise<any> => {
+    try {
+      if (approveIds?.length > 0) {
+        await db('subevents')
+          .where('event_id', eventId)
+          .whereIn('_id', approveIds)
+          .update({ status: 'available' });
+      }
+  
+      if (rejectIds?.length > 0) {
+        let idx = 0;
+        for(let denialReason of reasons){
+          await db('subevents')
+          .where('event_id', eventId)
+          .where('_id', rejectIds[idx])
+          .update({ status: 'cancelled' , 'denial_reason' : denialReason});
+        }
+      }
+  
+      const result = await db('subevents')
+        .count('_id as count')
+        .where('event_id', eventId)
+        .first();
+  
+      const totalProcessed = approveIds.length + rejectIds.length;
+  
+      if (result?.count === totalProcessed) {
+        await db('events')
+          .where('_id', eventId)
+          .update({ status: 1 });
+        return { status: true };
+      }
+  
+      return { status: false };
+    } catch (error) {
+      console.error('Error updating event status:', error);
+      return {
+        status: false,
+        message: 'An error occurred while updating event status.',
+      };
+    }
+  };
+  
 }

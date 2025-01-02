@@ -22,7 +22,7 @@ export const createBooking = async (req: Request | any, res: Response) => {
     const { event_id: eventId, sub_event_items: subEventItems } = req.body.data;
 
     if (!eventId) {
-      return ApiResponseHandler.error(res, "Event ID is missing. Try again!", 400);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.MISMATCHED_IDS, 400);
     }
 
     if (!Array.isArray(subEventItems) || subEventItems.length === 0) {
@@ -91,8 +91,10 @@ export const confirmBooking = async (req: Request | any, res: Response) => {
     const userId = Number(req.user.userId);
     const existingBookingResponse = await bookingInstance.getBookingByUserAndEvent(userId, eventId);
 
+    // booking already initiated then update status as confirmed.
     if (existingBookingResponse.status) {
       const updatedBookingData: Partial<BookingInterface> = {
+        event_id:eventId,
         payment_method: paymentMethod,
         payment_ids: paymentId,
         status: "confirmed",
@@ -107,6 +109,7 @@ export const confirmBooking = async (req: Request | any, res: Response) => {
       return ApiResponseHandler.success(res, updateResponse.data, COMMON_MESSAGES.BOOKING_CONFIRMED, 200);
     }
 
+    // booking not exist. so, creating an new booking
     const bookingId = Date.now() + Math.floor(Math.random() * 1000);
     const amountResponse = await bookingInstance.getAmounts(subEventItems);
     const bookingAmount = Number(amountResponse.amount);
