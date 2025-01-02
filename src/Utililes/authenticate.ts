@@ -73,6 +73,7 @@ export class Authenticate {
     };
   }
 
+  
   static async isVerifiedUser(req: Request, res: Response, next: NextFunction){
     try {
       const user = req.user;
