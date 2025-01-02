@@ -7,7 +7,7 @@ const router = Router();
 const fileUploadInstance = new FileUploadMiddleware();
 
 
-router.post("/categories", fileUploadInstance.middleware(), CategoryModel.createCategory); 
+router.post("/create", fileUploadInstance.middleware(), CategoryModel.createCategory); 
 router.post("/categories/update", fileUploadInstance.middleware(), CategoryModel.updateCategoryByID); 
 router.post("/categories/delete", CategoryModel.deleteCategoryByID); 
 router.get("/categories/single", CategoryModel.getCategoryById); 

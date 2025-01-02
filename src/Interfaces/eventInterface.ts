@@ -1,5 +1,4 @@
 export interface EventInterface {
-  _id: number;
   name: string;
   location: string;
   org_id: number;
@@ -27,7 +26,7 @@ export interface MainEventInterface extends Omit<EventInterface, "sub_events"> {
 
 export interface SubEventInterface {
   _id?: number;
-  event_id: number;
+  event_id?: number;
   name: string;
   description: string;
   cover_images: string;

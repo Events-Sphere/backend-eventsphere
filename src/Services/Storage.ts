@@ -77,16 +77,14 @@ export class FirebaseStorage {
   };
 
   static uploadSubEventCoverImages = async (
-    baseUrl: string,
+    uniqueFileName: string,
     files: Express.Multer.File[]
   ): Promise<{ status: boolean; urls?: string[]; message?: string }> => {
     try {
       const urls: string[] = [];
 
       await Promise.all(
-        files.map(async (file, index) => {
-          const uniqueFileName = `${baseUrl}/cover_${index}_${Date.now()}.jpg`;
-
+        files.map(async (file) => {
           const firebaseFile = storage.file(uniqueFileName);
 
           await firebaseFile.save(file.buffer, {

@@ -10,7 +10,6 @@ import { FirebaseStorage } from "../../Services/Storage";
 import moment from "moment";
 import { COMMON_MESSAGES } from "../../Common/messages";
 
-
 interface FileStorageResponse {
   status: boolean;
   message?: string;
@@ -28,7 +27,6 @@ interface ParsedFiles {
 
 const isValidEventData = (data: any): data is MainEventInterface => {
   const requiredFields = [
-    "_id",
     "name",
     "location",
     "org_id",
@@ -56,8 +54,6 @@ const isValidEventData = (data: any): data is MainEventInterface => {
 
 const isValidSubEventData = (subEvent: any): subEvent is SubEventInterface => {
   const requiredFields = [
-    "_id",
-    "event_id",
     "name",
     "description",
     "start_time",
@@ -68,7 +64,6 @@ const isValidSubEventData = (subEvent: any): subEvent is SubEventInterface => {
     "host_mobile",
     "c_code",
     "ticket_quantity",
-    "ticket_sold",
     "ticket_type",
     "ticket_price",
     "restrictions",
@@ -157,7 +152,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
     const imgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadSingleImage(
-        `events/main_${Date.now()}.jpg`,
+        `EVENTS/MAIN EVENT IMAGES/mainImg_${Date.now()}.jpg`,
         mainImgFile
       );
     if (imgUploadedResponse.status === false) {
@@ -171,7 +166,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
     const coverImgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadCoverImages(
-        `events/${data._id}/coverImages/cover_${data._id}_${Date.now()}.jpg`,
+        `EVENTS/COVER IMAGES/cover_${Date.now()}.jpg`,
         coverImgFiles
       );
     if (coverImgUploadedResponse.status === false) {
@@ -204,7 +199,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
       const coverImgUploadedResponse: FileStorageResponse =
         await FirebaseStorage.uploadSubEventCoverImages(
-          `'events'/${data._id}/subevents/${subEvent._id}}/cover_${idx}_${Date.now()}.jpg`,
+          `EVENTS/SUB EVENTS IMAGES/subevent_cover_img${idx}_${Date.now()}.jpg`,
           subEventCoverImgFile
         );
       if (coverImgUploadedResponse.status === false) {
@@ -216,16 +211,13 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       }
 
       totalAmount = totalAmount + subEvent.ticket_price;
-      const subEventId = subEvent._id ?? Date.now() + Math.floor(Math.random() * 1000);
       const subevent: SubEventInterface = {
-        _id: subEventId,
-        event_id: subEvent.event_id,
         name: subEvent.name,
         description: subEvent.description,
         cover_images: JSON.stringify(coverImgUploadedResponse.urls),
         video_url: subEvent.video_url || null,
-        start_time: moment(subEvent.start_time).format("HH:mm:ss"),
-        end_time: moment(subEvent.end_time).format("HH:mm:ss"),
+        start_time: subEvent.start_time,
+        end_time: subEvent.end_time,
         starting_date: moment(subEvent.starting_date).format("YYYY-MM-DD"),
         hostedBy: subEvent.hostedBy,
         host_email: subEvent.host_email,
@@ -242,12 +234,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       subEventsData.push(subevent);
     }
 
-    subEventsData.map((d) => {
-      console.log(d);
-    });
-
     const mainEvents = {
-      _id: data._id,
       name: data.name,
       location: data.location,
       org_id: data.org_id,
@@ -310,7 +297,6 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
 export const updateEvent = async (req: Request, res: Response, next: any) => {
   try {
-    
     const { eventId, mainEventData, subEventsData } = req.body;
     const subEventsCoverFiles = req.body.files;
 
@@ -329,7 +315,6 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
     }
 
     const requiredMainFields = [
-      "_id",
       "name",
       "location",
       "org_id",
@@ -357,8 +342,7 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
       }
     }
 
-
-    for(let subEvent of subEventsData){
+    for (let subEvent of subEventsData) {
       const requiredSubFields = [
         "name",
         "description",
@@ -421,14 +405,15 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
     const subEventIdsToDelete = new Set(existingSubEventIds);
     const newSubEventIds: number[] = [];
 
-
     for (let subEvent of subEventsData) {
       if (!existingSubEventIds.includes(subEvent._id)) {
         if (mappedSubEventsCoverFiles[subEvent._id]) {
           const coverImages = mappedSubEventsCoverFiles[subEvent._id];
           const coverImgUploadedResponse =
             await FirebaseStorage.uploadCoverImages(
-              `events/${eventId}/subevents/${subEvent._id}/cover_${subEvent._id}_${Date.now()}.jpg`,
+              `EVENTS/SUB EVENT IMAGES/subevent_cover_img${
+                subEvent._id
+              }_${Date.now()}.jpg`,
               coverImages
             );
 
@@ -463,7 +448,7 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
       updatedSubEvents.push(subEventUpdate);
       subEventIdsToDelete.delete(subEvent._id);
     }
-            
+
     const response: any = await eventInstance.updateEvent(
       eventId,
       updatedMainEventData,
@@ -494,13 +479,23 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
 export const getPendingEventsById = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
     }
 
-    const response = await eventInstance.getPendingEventList(Number(req.user.id));
+    const response = await eventInstance.getPendingEventList(
+      Number(req.user.id)
+    );
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
     }
 
     return ApiResponseHandler.success(
@@ -517,13 +512,23 @@ export const getPendingEventsById = async (req: Request, res: Response) => {
 export const getCompletedEventsById = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
     }
 
-    const response = await eventInstance.getCompletedEventList(Number(req.user.id));
+    const response = await eventInstance.getCompletedEventList(
+      Number(req.user.id)
+    );
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
     }
 
     return ApiResponseHandler.success(
@@ -540,13 +545,23 @@ export const getCompletedEventsById = async (req: Request, res: Response) => {
 export const getActiveEventsById = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
     }
 
-    const response = await eventInstance.getActiveEventList(Number(req.user.id));
+    const response = await eventInstance.getActiveEventList(
+      Number(req.user.id)
+    );
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
     }
 
     return ApiResponseHandler.success(
@@ -565,13 +580,23 @@ export const getEventsByCategoryName = async (req: Request, res: Response) => {
     const { categoryName } = req.query;
 
     if (!categoryName) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.CATEGORY_REQUIRED, 400);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.CATEGORY_REQUIRED,
+        400
+      );
     }
 
-    const response = await eventInstance.getEventsByCategoryName(categoryName.toString());
+    const response = await eventInstance.getEventsByCategoryName(
+      categoryName.toString()
+    );
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.CATEGORY_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.CATEGORY_NOT_FOUND,
+        404
+      );
     }
 
     return ApiResponseHandler.success(
@@ -585,18 +610,24 @@ export const getEventsByCategoryName = async (req: Request, res: Response) => {
   }
 };
 
-
-
 export const getPendingEvents = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
     }
 
     const response = await eventInstance.getAllPendingEventList();
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
     }
 
     return ApiResponseHandler.success(
@@ -613,13 +644,21 @@ export const getPendingEvents = async (req: Request, res: Response) => {
 export const getCompletedEvents = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
     }
 
     const response = await eventInstance.getAllCompletedEventList();
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
     }
 
     return ApiResponseHandler.success(
@@ -636,13 +675,21 @@ export const getCompletedEvents = async (req: Request, res: Response) => {
 export const getActiveEvents = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
     }
 
     const response = await eventInstance.getAllActiveEventList();
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
     }
 
     return ApiResponseHandler.success(
@@ -661,7 +708,11 @@ export const getPopularEvents = async (req: Request, res: Response) => {
     const response = await eventInstance.getPopularEventList();
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.POPULAR_EVENTS_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.POPULAR_EVENTS_NOT_FOUND,
+        404
+      );
     }
 
     return ApiResponseHandler.success(
@@ -680,7 +731,11 @@ export const getUpcomingEvents = async (req: Request, res: Response) => {
     const response = await eventInstance.getUpcomingEventList();
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.UPCOMING_EVENTS_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.UPCOMING_EVENTS_NOT_FOUND,
+        404
+      );
     }
 
     return ApiResponseHandler.success(
@@ -698,11 +753,18 @@ export const searchEvents = async (req: Request, res: Response) => {
   try {
     const { queryText, location, category } = req.body;
 
-    
-    const response = await eventInstance.searchEventList({ queryText, location, category });
+    const response = await eventInstance.searchEventList({
+      queryText,
+      location,
+      category,
+    });
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.EVENTS_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.EVENTS_NOT_FOUND,
+        404
+      );
     }
 
     return ApiResponseHandler.success(
@@ -716,5 +778,3 @@ export const searchEvents = async (req: Request, res: Response) => {
     return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
-
-

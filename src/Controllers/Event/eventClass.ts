@@ -8,47 +8,49 @@ export class EventClass {
   createEvent = async (
     mainEventData: MainEventInterface,
     subEventData: SubEventInterface[]
-  ): Promise<{ status: boolean; data: any }> => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const [eventId] = await db("events").insert(mainEventData);
-        for (let subEvent of subEventData) {
-          subEvent.event_id = eventId;
-          await db("subevents").insert(subEvent);
-        }
-        resolve({ status: true, data: eventId });
-      } catch (error) {
-        console.error("Error creating event:", error);
-        reject({ status: false, data: null });
-      }
-    });
-  };
-
-  updateOrganizationPendingEvent = async (
-    orgId: number,
-    eventId: number
-  ) => {
+  ): Promise<{ status: boolean; data?: any }> => {
     try {
-      const result: any[] = await db('organizations').select('*').where('_id', '=', orgId);
-      
-      if (result.length === 0) {
-        return { status: false};
+      const [eventId] = await db("events")
+        .insert(mainEventData)
+        .returning("_id");
+
+      for (let subEvent of subEventData) {
+        subEvent.event_id = eventId;
+        await db("subevents").insert(subEvent);
       }
-      
-      const existingPendingEventsIds = result[0].pending_events || [];
-  
-      const uniquePendingEventsIds = [...new Set([...existingPendingEventsIds, eventId])];
-      
-      await db('organizations')
-        .where('_id', '=', orgId)
-        .update({ pending_events: uniquePendingEventsIds });
-  
-      return { status: true };
+      return { status: true, data: eventId };
     } catch (error) {
-      return { status: false};
+      console.error("Error creating event:", error);
+      return { status: false, data: null };
     }
   };
-  
+
+  updateOrganizationPendingEvent = async (orgId: number, eventId: number) => {
+    try {
+      const result: any[] = await db("organizations")
+        .select("*")
+        .where("_id", "=", orgId);
+
+      if (result.length === 0) {
+        return { status: false };
+      }
+
+      const existingPendingEventsIds = result[0].pending_events || [];
+
+      const uniquePendingEventsIds = [
+        ...new Set([...existingPendingEventsIds, eventId]),
+      ];
+
+      await db("organizations")
+        .where("_id", "=", orgId)
+        .update({ pending_events: uniquePendingEventsIds });
+
+      return { status: true };
+    } catch (error) {
+      return { status: false };
+    }
+  };
+
   updateEvent = async (
     eventId: number,
     updatedMainEventData: MainEventInterface,
@@ -144,12 +146,12 @@ export class EventClass {
 
   updateOrganizationEventCounts = async (
     orgId: any,
-    amount : number,
+    amount: number,
     currentEvents: any[]
   ): Promise<{ status: boolean; data: any }> => {
     try {
       const [{ events_counts, pending_events, total_earnings }] = await db
-        .select("events_counts", "pending_events","total_earnings")
+        .select("events_counts", "pending_events", "total_earnings")
         .from("organizations")
         .where("_id", "=", orgId);
 
@@ -243,7 +245,6 @@ export class EventClass {
     });
   };
 
-
   getCompletedEventList = async (userId: number): Promise<any> => {
     try {
       const completedEvents = await db("events")
@@ -252,21 +253,35 @@ export class EventClass {
         .andWhere("org_id", userId);
 
       if (!completedEvents || completedEvents.length === 0) {
-        return { status: false, message: "No completed events found.", data: [] };
+        return {
+          status: false,
+          message: "No completed events found.",
+          data: [],
+        };
       }
 
       const eventsWithSubEvents = await Promise.all(
         completedEvents.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
-          const subEvents = subEventIds.length ? await db("subevents").whereIn("_id", subEventIds) : [];
+          const subEvents = subEventIds.length
+            ? await db("subevents").whereIn("_id", subEventIds)
+            : [];
           return { ...event, sub_events: subEvents };
         })
       );
 
-      return { status: true, message: "Completed events with sub-events retrieved successfully.", data: eventsWithSubEvents };
+      return {
+        status: true,
+        message: "Completed events with sub-events retrieved successfully.",
+        data: eventsWithSubEvents,
+      };
     } catch (error) {
       console.error("Error fetching completed events:", error);
-      return { status: false, message: "An error occurred while retrieving completed events.", data: [] };
+      return {
+        status: false,
+        message: "An error occurred while retrieving completed events.",
+        data: [],
+      };
     }
   };
 
@@ -284,15 +299,25 @@ export class EventClass {
       const eventsWithSubEvents = await Promise.all(
         activeEvents.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
-          const subEvents = subEventIds.length ? await db("subevents").whereIn("_id", subEventIds) : [];
+          const subEvents = subEventIds.length
+            ? await db("subevents").whereIn("_id", subEventIds)
+            : [];
           return { ...event, sub_events: subEvents };
         })
       );
 
-      return { status: true, message: "Active events with sub-events retrieved successfully.", data: eventsWithSubEvents };
+      return {
+        status: true,
+        message: "Active events with sub-events retrieved successfully.",
+        data: eventsWithSubEvents,
+      };
     } catch (error) {
       console.error("Error fetching active events:", error);
-      return { status: false, message: "An error occurred while retrieving active events.", data: [] };
+      return {
+        status: false,
+        message: "An error occurred while retrieving active events.",
+        data: [],
+      };
     }
   };
 
@@ -303,21 +328,35 @@ export class EventClass {
         .where("category", categoryName);
 
       if (!eventsByCategory || eventsByCategory.length === 0) {
-        return { status: false, message: `No events found for category: ${categoryName}.`, data: [] };
+        return {
+          status: false,
+          message: `No events found for category: ${categoryName}.`,
+          data: [],
+        };
       }
 
       const eventsWithSubEvents = await Promise.all(
         eventsByCategory.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
-          const subEvents = subEventIds.length ? await db("subevents").whereIn("_id", subEventIds) : [];
+          const subEvents = subEventIds.length
+            ? await db("subevents").whereIn("_id", subEventIds)
+            : [];
           return { ...event, sub_events: subEvents };
         })
       );
 
-      return { status: true, message: `Events under category: ${categoryName} retrieved successfully.`, data: eventsWithSubEvents };
+      return {
+        status: true,
+        message: `Events under category: ${categoryName} retrieved successfully.`,
+        data: eventsWithSubEvents,
+      };
     } catch (error) {
       console.error("Error fetching events by category:", error);
-      return { status: false, message: "An error occurred while retrieving events by category.", data: [] };
+      return {
+        status: false,
+        message: "An error occurred while retrieving events by category.",
+        data: [],
+      };
     }
   };
 
@@ -328,7 +367,7 @@ export class EventClass {
         .count("* as bookings_count")
         .groupBy("event_id")
         .orderBy("bookings_count", "desc")
-        .limit(10); 
+        .limit(10);
 
       if (!popularEvents || popularEvents.length === 0) {
         return { status: false, message: "No popular events found.", data: [] };
@@ -336,7 +375,9 @@ export class EventClass {
 
       const eventDetails = await Promise.all(
         popularEvents.map(async (event: any) => {
-          const eventData = await db("events").where("_id", event.event_id).first();
+          const eventData = await db("events")
+            .where("_id", event.event_id)
+            .first();
           if (eventData) {
             const subEventIds = JSON.parse(eventData.sub_event_items || "[]");
             const subEvents = subEventIds.length
@@ -355,15 +396,18 @@ export class EventClass {
       return {
         status: true,
         message: "Popular events retrieved successfully.",
-        data: eventDetails.filter(Boolean), 
+        data: eventDetails.filter(Boolean),
       };
     } catch (error) {
       console.error("Error fetching popular events:", error);
-      return { status: false, message: "An error occurred while retrieving popular events.", data: [] };
+      return {
+        status: false,
+        message: "An error occurred while retrieving popular events.",
+        data: [],
+      };
     }
   };
-  
-  
+
   getUpcomingEventList = async (): Promise<any> => {
     try {
       const upcomingEvents = await db("events")
@@ -372,7 +416,11 @@ export class EventClass {
         .orderBy("registration_start", "asc");
 
       if (!upcomingEvents || upcomingEvents.length === 0) {
-        return { status: false, message: "No upcoming events found.", data: [] };
+        return {
+          status: false,
+          message: "No upcoming events found.",
+          data: [],
+        };
       }
 
       const eventsWithSubEvents = await Promise.all(
@@ -395,7 +443,11 @@ export class EventClass {
       };
     } catch (error) {
       console.error("Error fetching upcoming events:", error);
-      return { status: false, message: "An error occurred while retrieving upcoming events.", data: [] };
+      return {
+        status: false,
+        message: "An error occurred while retrieving upcoming events.",
+        data: [],
+      };
     }
   };
 
@@ -467,29 +519,42 @@ export class EventClass {
     });
   };
 
-
   getAllCompletedEventList = async (): Promise<any> => {
     try {
       const completedEvents = await db("events")
         .select("*")
-        .where("status", "completed")
+        .where("status", "completed");
 
       if (!completedEvents || completedEvents.length === 0) {
-        return { status: false, message: "No completed events found.", data: [] };
+        return {
+          status: false,
+          message: "No completed events found.",
+          data: [],
+        };
       }
 
       const eventsWithSubEvents = await Promise.all(
         completedEvents.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
-          const subEvents = subEventIds.length ? await db("subevents").whereIn("_id", subEventIds) : [];
+          const subEvents = subEventIds.length
+            ? await db("subevents").whereIn("_id", subEventIds)
+            : [];
           return { ...event, sub_events: subEvents };
         })
       );
 
-      return { status: true, message: "Completed events with sub-events retrieved successfully.", data: eventsWithSubEvents };
+      return {
+        status: true,
+        message: "Completed events with sub-events retrieved successfully.",
+        data: eventsWithSubEvents,
+      };
     } catch (error) {
       console.error("Error fetching completed events:", error);
-      return { status: false, message: "An error occurred while retrieving completed events.", data: [] };
+      return {
+        status: false,
+        message: "An error occurred while retrieving completed events.",
+        data: [],
+      };
     }
   };
 
@@ -506,18 +571,27 @@ export class EventClass {
       const eventsWithSubEvents = await Promise.all(
         activeEvents.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
-          const subEvents = subEventIds.length ? await db("subevents").whereIn("_id", subEventIds) : [];
+          const subEvents = subEventIds.length
+            ? await db("subevents").whereIn("_id", subEventIds)
+            : [];
           return { ...event, sub_events: subEvents };
         })
       );
 
-      return { status: true, message: "Active events with sub-events retrieved successfully.", data: eventsWithSubEvents };
+      return {
+        status: true,
+        message: "Active events with sub-events retrieved successfully.",
+        data: eventsWithSubEvents,
+      };
     } catch (error) {
       console.error("Error fetching active events:", error);
-      return { status: false, message: "An error occurred while retrieving active events.", data: [] };
+      return {
+        status: false,
+        message: "An error occurred while retrieving active events.",
+        data: [],
+      };
     }
   };
-
 
   searchEventList = async ({
     queryText,
@@ -529,20 +603,17 @@ export class EventClass {
     category?: string;
   }): Promise<any> => {
     try {
-      
       const query = db("main_events").select("*");
       if (queryText) query.where("name", "like", `%${queryText}%`);
       if (location) query.andWhere("location", "=", location);
       if (category) query.andWhere("category", "=", category);
-  
-      
+
       const mainEvents = await query;
-  
+
       if (!mainEvents || mainEvents.length === 0) {
         return { status: false, data: [] };
       }
-  
-      
+
       const eventsWithSubEvents = await Promise.all(
         mainEvents.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
@@ -555,7 +626,7 @@ export class EventClass {
           };
         })
       );
-  
+
       return {
         status: true,
         data: eventsWithSubEvents,
@@ -568,6 +639,4 @@ export class EventClass {
       };
     }
   };
-
-  
 }

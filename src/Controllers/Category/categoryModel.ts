@@ -27,8 +27,6 @@ export const createCategory = async (req: Request, res: Response) => {
       );
     }
 
-    const categoryId = Date.now() + Math.floor(Math.random() * 1000);
-
     const imgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadSingleImage(
         `categories/${categoryName}'_'${Date.now()}.jpg`,
@@ -44,7 +42,6 @@ export const createCategory = async (req: Request, res: Response) => {
     }
 
     const categoryData: categoryInterface = {
-      _id: categoryId,
       name: categoryName,
       image: imgUploadedResponse.url,
       is_enable: 1,

@@ -14,8 +14,8 @@ export class CategoryClass {
         return { status: false};
       }
 
-      await db("categories").insert(categoryData);
-      return { status: true, data: []};
+      const [id] = await db("categories").insert(categoryData);
+      return { status: true, data: id };
     } catch (error: any) {
       console.error("Error creating category:", error);
       return {
