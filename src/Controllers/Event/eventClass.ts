@@ -642,10 +642,10 @@ export class EventClass {
 
   searchEventsByStatus = async ({
     queryText,
-    status
+    status,
   }: {
     queryText?: string;
-    status?:string;
+    status?: string;
   }): Promise<any> => {
     try {
       const query = db("main_events").select("*");
@@ -661,7 +661,10 @@ export class EventClass {
         mainEvents.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
           const subEvents = subEventIds.length
-            ? await db("sub_events").select("*").whereIn("_id", subEventIds).andWhere('status',status)
+            ? await db("sub_events")
+                .select("*")
+                .whereIn("_id", subEventIds)
+                .andWhere("status", status)
             : [];
           return {
             ...event,
@@ -692,48 +695,81 @@ export class EventClass {
     eventId: number;
     approveIds: number[];
     rejectIds: number[];
-    reasons : string[]
+    reasons: string[];
   }): Promise<any> => {
     try {
       if (approveIds?.length > 0) {
-        await db('subevents')
-          .where('event_id', eventId)
-          .whereIn('_id', approveIds)
-          .update({ status: 'available' });
+        await db("subevents")
+          .where("event_id", eventId)
+          .whereIn("_id", approveIds)
+          .update({ status: "available" });
       }
-  
+
       if (rejectIds?.length > 0) {
         let idx = 0;
-        for(let denialReason of reasons){
-          await db('subevents')
-          .where('event_id', eventId)
-          .where('_id', rejectIds[idx])
-          .update({ status: 'cancelled' , 'denial_reason' : denialReason});
+        for (let denialReason of reasons) {
+          await db("subevents")
+            .where("event_id", eventId)
+            .where("_id", rejectIds[idx])
+            .update({ status: "cancelled", denial_reason: denialReason });
         }
       }
-  
-      const result = await db('subevents')
-        .count('_id as count')
-        .where('event_id', eventId)
+
+      const result = await db("subevents")
+        .select("org_id")
+        .count("_id as count")
+        .where("event_id", eventId)
         .first();
-  
+
       const totalProcessed = approveIds.length + rejectIds.length;
-  
+
       if (result?.count === totalProcessed) {
-        await db('events')
-          .where('_id', eventId)
-          .update({ status: 1 });
+        await db("events").where("_id", eventId).update({ status: 1 });
+
+        const organizerEventStatus = await db("organizations")
+          .select("pending_events", "active_events")
+          .where("_id", result?.org_id)
+          .first();
+
+        if (organizerEventStatus) {
+          const { pending_events, active_events } = organizerEventStatus;
+
+          const pendingEvents = Array.isArray(pending_events)
+            ? pending_events
+            : [];
+          const activeEvents = Array.isArray(active_events)
+            ? active_events
+            : [];
+
+          const updatedPendingEvents = pendingEvents.filter(
+            (eventID) => eventID !== eventId
+          );
+
+          if (!activeEvents.includes(eventId)) {
+            activeEvents.push(eventId);
+          }
+
+          await db("organizations")
+            .where("_id", result?.org_id)
+            .update({
+              pending_events: JSON.stringify(updatedPendingEvents),
+              active_events: JSON.stringify(activeEvents),
+            });
+
+          console.log("Event status updated successfully.");
+        } else {
+          console.error("Organizer event status not found.");
+        }
         return { status: true };
       }
-  
+
       return { status: false };
     } catch (error) {
-      console.error('Error updating event status:', error);
+      console.error("Error updating event status:", error);
       return {
         status: false,
-        message: 'An error occurred while updating event status.',
+        message: "An error occurred while updating event status.",
       };
     }
   };
-  
 }
