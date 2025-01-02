@@ -13,7 +13,7 @@ const storage = admin.storage().bucket();
 
 export class FirebaseStorage {
   static uploadSingleImage = async (
-    baseUrl : string,
+    baseUrl: string,
     file: Express.Multer.File
   ): Promise<{ status: boolean; url?: string; message?: string }> => {
     const uniqueFileName = `${baseUrl}/main_${Date.now()}.jpg`;
@@ -34,7 +34,7 @@ export class FirebaseStorage {
         expires: "03-09-2030",
       });
 
-      return { status: true, url : uniqueFileName };
+      return { status: true, url: uniqueFileName };
     } catch (error) {
       console.error(`Error uploading image file : `, error);
       return { status: false, message: "Failed to upload image" };
@@ -42,7 +42,7 @@ export class FirebaseStorage {
   };
 
   static uploadCoverImages = async (
-    baseUrl : string,
+    baseUrl: string,
     files: Express.Multer.File[]
   ): Promise<{ status: boolean; urls?: string[]; message?: string }> => {
     try {
@@ -79,7 +79,7 @@ export class FirebaseStorage {
   };
 
   static uploadSubEventCoverImages = async (
-    baseUrl : string,
+    baseUrl: string,
     files: Express.Multer.File[]
   ): Promise<{ status: boolean; urls?: string[]; message?: string }> => {
     try {
@@ -110,11 +110,48 @@ export class FirebaseStorage {
 
       return { status: true, urls };
     } catch (error) {
-      console.error(
-        `Error uploading sub-event cover images : `,
-        error
-      );
+      console.error(`Error uploading sub-event cover images : `, error);
       return { status: false, message: "Failed to upload sub-event cover images" };
+    }
+  };
+
+  static deleteFile = async (
+    filePath: string
+  ): Promise<{ status: boolean; message?: string }> => {
+    try {
+      const file = storage.file(filePath);
+      await file.delete();
+      return { status: true, message: "File deleted successfully" };
+    } catch (error) {
+      console.error(`Error deleting file : `, error);
+      return { status: false, message: "Failed to delete file" };
+    }
+  };
+
+  static updateFile = async (
+    filePath: string,
+    file: Express.Multer.File
+  ): Promise<{ status: boolean; url?: string; message?: string }> => {
+    try {
+      const firebaseFile = storage.file(filePath);
+
+      await firebaseFile.save(file.buffer, {
+        public: true,
+        metadata: {
+          contentType: file.mimetype,
+          cacheControl: "public, max-age=31536000",
+        },
+      });
+
+      const [url] = await firebaseFile.getSignedUrl({
+        action: "read",
+        expires: "03-09-2030",
+      });
+
+      return { status: true, url: filePath };
+    } catch (error) {
+      console.error(`Error updating file : `, error);
+      return { status: false, message: "Failed to update file" };
     }
   };
 }

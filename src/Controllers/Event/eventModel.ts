@@ -8,7 +8,8 @@ import {
 import { EventClass } from "./eventClass";
 import { FirebaseStorage } from "../../Services/Storage";
 import moment from "moment";
-import { categoryInterface } from "../../Interfaces/categoryInterface";
+import { COMMON_MESSAGES } from "../../Common/messages";
+
 
 interface FileStorageResponse {
   status: boolean;
@@ -185,6 +186,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     const subEventsData: SubEventInterface[] = [];
 
     let idx = 0;
+    let totalAmount = 0;
     for (let subEvent of data.sub_events) {
       if (!isValidSubEventData(subEvent)) {
         return ApiResponseHandler.error(
@@ -213,8 +215,10 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
         );
       }
 
+      totalAmount = totalAmount + subEvent.ticket_price;
+      const subEventId = subEvent._id ?? Math.floor(10000 + Math.random() * 90000);
       const subevent: SubEventInterface = {
-        _id: subEvent._id,
+        _id: subEventId,
         event_id: subEvent.event_id,
         name: subEvent.name,
         description: subEvent.description,
@@ -228,13 +232,10 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
         host_mobile: subEvent.host_mobile,
         c_code: subEvent.c_code,
         ticket_quantity: subEvent.ticket_quantity,
-        ticket_sold: subEvent.ticket_sold,
+        ticket_sold: 0,
         ticket_type: subEvent.ticket_type,
         ticket_price: subEvent.ticket_price,
-        earnings: subEvent.earnings,
-        approvedBy: subEvent.approvedBy,
-        approvedAt: moment(subEvent.approvedAt).format("YYYY-MM-DD HH:mm:ss"),
-        denial_reason: subEvent.denial_reason || null,
+        earnings: 0,
         restrictions: JSON.stringify(subEvent.restrictions),
       };
 
@@ -293,6 +294,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     const updateOrganizerEventCount =
       await eventInstance.updateOrganizationEventCounts(
         mainEvents.org_id,
+        totalAmount,
         subEventIds
       );
     if (updateOrganizerEventCount.status === false) {
@@ -308,7 +310,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
 export const updateEvent = async (req: Request, res: Response, next: any) => {
   try {
-    // if you have new subEvents then add cover image files like eg(sub_cover_images[here id of the subEvent] : [list of image files])
+    
     const { eventId, mainEventData, subEventsData } = req.body;
     const subEventsCoverFiles = req.body.files;
 
@@ -489,224 +491,230 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
   }
 };
 
-export const createCategory = async (req: Request, res: Response) => {
+export const getPendingEventsById = async (req: Request, res: Response) => {
   try {
-    if (!req.body.name || !req.body.file) {
-      return ApiResponseHandler.error(
-        res,
-        "Missing required data in the request. Please provide the necessary category information.",
-        400
-      );
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
     }
 
-    const categoryName = req.body.name;
-    const categoryImageFile = req.body.file;
+    const response = await eventInstance.getPendingEventList(Number(req.user.id));
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Pending events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const getCompletedEventsById = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+    }
+
+    const response = await eventInstance.getCompletedEventList(Number(req.user.id));
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Completed events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const getActiveEventsById = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+    }
+
+    const response = await eventInstance.getActiveEventList(Number(req.user.id));
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Active events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const getEventsByCategoryName = async (req: Request, res: Response) => {
+  try {
+    const { categoryName } = req.query;
 
     if (!categoryName) {
-      return ApiResponseHandler.error(res, "Category name is required.", 400);
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.CATEGORY_REQUIRED, 400);
     }
 
-    if (!categoryImageFile) {
-      return ApiResponseHandler.error(res, "Category image is required.", 400);
-    }
-
-    const categoryId = Date.now() + Math.floor(Math.random() * 1000);
-
-    const imgUploadedResponse: FileStorageResponse =
-      await FirebaseStorage.uploadSingleImage(
-        `categories/${categoryId}`,
-        categoryImageFile
-      );
-    if (!imgUploadedResponse.status) {
-      return ApiResponseHandler.error(
-        res,
-        imgUploadedResponse.message ??
-          "failed to upload main event images. try again!",
-        500
-      );
-    }
-
-    const categoryData: categoryInterface = {
-      _id: categoryId,
-      name: categoryName,
-      image: imgUploadedResponse.url,
-      is_enable: 1,
-    };
-
-    const response: any = await eventInstance.createCategory(categoryData);
+    const response = await eventInstance.getEventsByCategoryName(categoryName.toString());
 
     if (!response.status) {
-      return ApiResponseHandler.error(
-        res,
-        response.message ?? "failed to create category. try after sometime",
-        500
-      );
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.CATEGORY_NOT_FOUND, 404);
     }
 
     return ApiResponseHandler.success(
       res,
       response.data,
-      "Category created successfully.",
+      `Events under category: ${categoryName} retrieved successfully.`,
       200
     );
   } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "internal server error",
-      500
-    );
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
 
-export const updateCategoryByID = async (req: Request, res: Response) => {
+
+
+export const getPendingEvents = async (req: Request, res: Response) => {
   try {
-    if (!req.body.name && !req.body.file) {
-      return ApiResponseHandler.error(
-        res,
-        "Missing required data in the request. Please provide the necessary category information.",
-        400
-      );
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
     }
 
-    const bodyData = req.body.data;
-    const categoryImageFile = req.body.file;
-
-    if (!categoryImageFile) {
-      return ApiResponseHandler.error(res, "Category image is required.", 400);
-    }
-
-    const categoryExists = await eventInstance.getCategoryById(bodyData._id);
-
-    if (!categoryExists) {
-      return ApiResponseHandler.error(res, "Category not exists", 500);
-    }
-
-    let imageUrl = bodyData.image;
-
-    if (req.body.file) {
-      const imgUploadedResponse: FileStorageResponse =
-        await FirebaseStorage.uploadSingleImage(
-          `categories/${bodyData._id}`,
-          categoryImageFile
-        );
-      imageUrl =
-        imgUploadedResponse.status === true
-          ? imgUploadedResponse.url
-          : bodyData.image;
-    }
-
-    const categoryUpdatedData: categoryInterface = {
-      _id: bodyData._id,
-      name: bodyData.name,
-      image: imageUrl,
-      is_enable: bodyData.is_enable ?? 1,
-    };
-
-    const response: any = await eventInstance.updateCategory(
-      categoryUpdatedData
-    );
+    const response = await eventInstance.getAllPendingEventList();
 
     if (!response.status) {
-      return ApiResponseHandler.error(
-        res,
-        response.message ?? "failed to update category. try after sometime",
-        500
-      );
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
     }
 
     return ApiResponseHandler.success(
       res,
       response.data,
-      "Category updated successfully.",
+      "Pending events retrieved successfully.",
       200
     );
   } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "internal server error",
-      500
-    );
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
 
-export const deteleCategoryByID = async (req: Request, res: Response) => {
+export const getCompletedEvents = async (req: Request, res: Response) => {
   try {
-    if (!req.body._id) {
-      return ApiResponseHandler.error(res, "missing category key", 400);
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
     }
 
-    const categoryExists = await eventInstance.getCategoryById(req.body._id);
-
-    if (!categoryExists.status) {
-      return ApiResponseHandler.error(res, "Category not exists", 500);
-    }
-
-    const response: any = await eventInstance.deleteCategoryById(
-      categoryExists.data._id
-    );
+    const response = await eventInstance.getAllCompletedEventList();
 
     if (!response.status) {
-      return ApiResponseHandler.error(
-        res,
-        response.message ?? "failed to delete category. Try again!.",
-        500
-      );
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
     }
 
-    return ApiResponseHandler.success(res, [], response.message, 200);
-  } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "internal server error",
-      500
-    );
-  }
-};
-
-export const getCategoryById = async (req: Request, res: Response) => {
-  try {
-    if (!req.body._id) {
-      return ApiResponseHandler.error(res, "Missing category key", 400);
-    }
-
-    const response: any = await eventInstance.getCategoryById(req.body._id);
-
-    if (!response.status) {
-      return ApiResponseHandler.error(
-        res,
-        `${response.message ?? "Category not exists"}`,
-        500
-      );
-    }
     return ApiResponseHandler.success(
       res,
       response.data,
-      response.message,
+      "Completed events retrieved successfully.",
       200
     );
   } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "internal server error",
-      500
-    );
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
 
-export const getAllCategories = async (req: Request, res: Response) => {
+export const getActiveEvents = async (req: Request, res: Response) => {
   try {
-    const response: any = await eventInstance.getAllCategories();
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.AUTHENTICATION_FAILED, 401);
+    }
+
+    const response = await eventInstance.getAllActiveEventList();
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.RESOURCE_NOT_FOUND, 404);
+    }
+
     return ApiResponseHandler.success(
       res,
-      response.data ?? [],
-      response.message ?? "categories list successfully getted.",
+      response.data,
+      "Active events retrieved successfully.",
       200
     );
   } catch (error: any) {
-    return ApiResponseHandler.error(
-      res,
-      error.message ?? "internal server error",
-      500
-    );
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
+
+export const getPopularEvents = async (req: Request, res: Response) => {
+  try {
+    const response = await eventInstance.getPopularEventList();
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.POPULAR_EVENTS_NOT_FOUND, 404);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Popular events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const getUpcomingEvents = async (req: Request, res: Response) => {
+  try {
+    const response = await eventInstance.getUpcomingEventList();
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.UPCOMING_EVENTS_NOT_FOUND, 404);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Upcoming events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const searchEvents = async (req: Request, res: Response) => {
+  try {
+    const { queryText, location, category } = req.body;
+
+    
+    const response = await eventInstance.searchEventList({ queryText, location, category });
+
+    if (!response.status) {
+      return ApiResponseHandler.error(res, COMMON_MESSAGES.EVENTS_NOT_FOUND, 404);
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    console.error("Error searching events:", error);
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+

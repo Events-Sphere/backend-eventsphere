@@ -1,15 +1,15 @@
 import { Router } from "express";
-import eventRouter from '../Routes/eventRoute';
 import authRouter from "../Routes/authRoute"
+import eventRouter from "../Routes/eventRoute";
+import categoryRouter from "../Routes/catogoriesRoute";
+import userRouter from "../Routes/userRouter";
+
 const router = Router();
 
-
-// router.post("/internal-team");
-// router.post("/organizer");
-
-
-router.use("/event" , eventRouter);
-router.use("/auth" , authRouter);
+router.use("/auth", authRouter);           
+router.use("/events", eventRouter);       
+router.use("/categories", categoryRouter); 
+router.use("/users", userRouter);         
 
 
 

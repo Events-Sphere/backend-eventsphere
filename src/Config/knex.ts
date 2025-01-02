@@ -1,12 +1,12 @@
 import knex from 'knex';
-import { dbConfig } from '../Config/knex-config';
+import { knexConfig } from '../Config/knex-config';
 import * as dotenv from "dotenv";
 
 dotenv.config();
 
 
 const NODE_ENV = process.env.NODE_ENV || 'DEV';
-const ENVIRONMENT = NODE_ENV === 'DEV' ? dbConfig.DEV : NODE_ENV === 'PROD' ? dbConfig.PROD : dbConfig.STAGING;
+const ENVIRONMENT = NODE_ENV === 'DEV' ? knexConfig.DEV : NODE_ENV === 'PROD' ? knexConfig.PROD : knexConfig.STAGING;
 
 const db = knex(ENVIRONMENT);
 

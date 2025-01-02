@@ -2,7 +2,7 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-export const dbConfig = {
+export const knexConfig = {
     DEV: {
         client: process.env.DB_CLIENT ,
         connection: {
