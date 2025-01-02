@@ -777,6 +777,37 @@ export const searchEvents = async (req: Request, res: Response) => {
   }
 };
 
+
+export const searchEventsByStatus = async (req: Request, res: Response) => {
+  try {
+    const { queryText, status } = req.body;
+
+    const response = await eventInstance.searchEventsByStatus({
+      queryText,
+      status
+    });
+
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.EVENTS_NOT_FOUND,
+        404
+      );
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    console.error("Error searching events:", error);
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+
 export const updateEventStatus = async (req: Request, res: Response) => {
   try {
     const { data } = req.body;

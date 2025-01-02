@@ -640,6 +640,49 @@ export class EventClass {
     }
   };
 
+  searchEventsByStatus = async ({
+    queryText,
+    status
+  }: {
+    queryText?: string;
+    status?:string;
+  }): Promise<any> => {
+    try {
+      const query = db("main_events").select("*");
+      if (queryText) query.where("name", "like", `%${queryText}%`);
+
+      const mainEvents = await query;
+
+      if (!mainEvents || mainEvents.length === 0) {
+        return { status: false, data: [] };
+      }
+
+      const eventsWithSubEvents = await Promise.all(
+        mainEvents.map(async (event: any) => {
+          const subEventIds = JSON.parse(event.sub_event_items || "[]");
+          const subEvents = subEventIds.length
+            ? await db("sub_events").select("*").whereIn("_id", subEventIds).andWhere('status',status)
+            : [];
+          return {
+            ...event,
+            sub_events: subEvents,
+          };
+        })
+      );
+
+      return {
+        status: true,
+        data: eventsWithSubEvents,
+      };
+    } catch (error) {
+      return {
+        status: false,
+        message: "An error occurred while retrieving events.",
+        data: [],
+      };
+    }
+  };
+
   updateEventStatus = async ({
     eventId,
     approveIds,

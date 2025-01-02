@@ -19,6 +19,7 @@ router.get("/admin/completed", EventModel.getCompletedEvents);
 router.get("/admin/active", EventModel.getActiveEvents);
 
 router.post("/search", EventModel.searchEvents);
+router.post("/search-by-status", EventModel.searchEventsByStatus);
 
 router.get("/by-category-name", EventModel.getEventsByCategoryName);
 router.get("/popular", EventModel.getPopularEvents);
