@@ -142,7 +142,7 @@ export class AuthClass {
   ): Promise<{ status: boolean; data?: any }> => {
     return new Promise(async (resolve, reject) => {
       try {
-        await db("users").insert({
+     const result=   await db("users").insert({
           name: userData.name,
           email: userData.email,
           mobile: userData.mobile,
@@ -150,18 +150,20 @@ export class AuthClass {
           role: userData.role,
           password: userData.password,
           location: userData.location,
-          longitude: userData.longitude,
-          latitude: userData.latitude,
+          longitude: parseFloat(userData.longitude),
+          latitude:parseFloat(userData.latitude) ,
+          proof:userData.proof
         });
 
         await db("organizations").insert({
+          _id:result[0],
           name: userData.collegeName,
           code: userData.collegeCode,
-          mobile: userData.mobile,
           noc: userData.collegeNoc,
         });
-        resolve({ status: true, data: [] });
+        resolve({ status: true, data:result });
       } catch (e) {
+        console.log(e)
         reject({
           status: false,
         });

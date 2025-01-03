@@ -13,6 +13,7 @@ export class EventClass {
       const [eventId] = await db("events")
         .insert(mainEventData)
         .returning("_id");
+       
 
       for (let subEvent of subEventData) {
         subEvent.event_id = eventId;
@@ -179,6 +180,7 @@ export class EventClass {
   getPendingEventList = async (userId: number): Promise<any> => {
     return new Promise(async (resolve, reject) => {
       try {
+        console.log("starting")
         const pendingEvents = await db("events")
           .select("*")
           .where("status", "pending")
@@ -191,6 +193,7 @@ export class EventClass {
             data: [],
           };
         }
+        console.log(pendingEvents)
 
         const eventsWithSubEvents = await Promise.all(
           pendingEvents.map(async (event: any) => {

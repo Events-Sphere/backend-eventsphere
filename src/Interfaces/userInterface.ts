@@ -32,7 +32,7 @@ export interface OrganizerSignupInterface {
   role:string;
   location:string;
   password: string;
-  proof:string[];
+  proof:string;
   longitude:string;
   latitude:string;
   collegeName:string;

@@ -1,28 +1,27 @@
 import { Router } from "express";
 import * as EventModel from "../Controllers/Event/eventModel";
 import { FileUploadMiddleware } from "../Middleware/fileUploadMiddleware";
-
+import { AuthenticateUser } from "../Middleware/authenticateUserMiddleware";
 const router = Router();
 const fileUploadInstance = new FileUploadMiddleware();
 
 //<---- Event router----->
-router.post("/create", fileUploadInstance.middleware(), EventModel.createEvent);
-router.post("/update", fileUploadInstance.middleware(), EventModel.updateEvent);
+router.post("/create",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, fileUploadInstance.middleware(), EventModel.createEvent);
+router.post("/update",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, fileUploadInstance.middleware(), EventModel.updateEvent);
 
 //<---- Retrieve events------>
-router.get("/pending", EventModel.getPendingEventsById);
-router.get("/completed", EventModel.getCompletedEventsById);
-router.get("/active", EventModel.getActiveEventsById);
+router.get("/pending",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, EventModel.getPendingEventsById);
+router.get("/completed",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, EventModel.getCompletedEventsById);
+router.get("/active",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, EventModel.getActiveEventsById);
 
-router.get("/admin/pending", EventModel.getPendingEvents);
-router.get("/admin/completed", EventModel.getCompletedEvents);
-router.get("/admin/active", EventModel.getActiveEvents);
+router.get("/admin/pending",AuthenticateUser.verifyToken,AuthenticateUser.isAdmin, EventModel.getPendingEvents);
+router.get("/admin/completed",AuthenticateUser.verifyToken,AuthenticateUser.isAdmin, EventModel.getCompletedEvents);
+router.get("/admin/active",AuthenticateUser.verifyToken,AuthenticateUser.isAdmin, EventModel.getActiveEvents);
 
-router.post("/search", EventModel.searchEvents);
-
-router.get("/by-category-name", EventModel.getEventsByCategoryName);
-router.get("/popular", EventModel.getPopularEvents);
-router.get("/upcoming", EventModel.getUpcomingEvents);
+router.post("/search",AuthenticateUser.verifyToken, EventModel.searchEvents);
+router.get("/by-category-name",AuthenticateUser.verifyToken, EventModel.getEventsByCategoryName);
+router.get("/popular",AuthenticateUser.verifyToken, EventModel.getPopularEvents);
+router.get("/upcoming",AuthenticateUser.verifyToken, EventModel.getUpcomingEvents);
 
 
 

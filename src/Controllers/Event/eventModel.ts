@@ -84,6 +84,8 @@ const isValidSubEventData = (subEvent: any): subEvent is SubEventInterface => {
 
 const eventInstance = new EventClass();
 
+// CREATE EVENT ENDPOINT--> http://localhost:3000/api/v1/events/create
+
 export const createEvent = async (req: Request, res: Response, next: any) => {
   try {
     if (!req.body.data || !req.files) {
@@ -205,7 +207,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       if (coverImgUploadedResponse.status === false) {
         return ApiResponseHandler.error(
           res,
-          "failed to upload cover images. try again later",
+          "failed to upload sub event cover images. try again later",
           500
         );
       }
@@ -476,6 +478,7 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
 
 export const getPendingEventsById = async (req: Request, res: Response) => {
   try {
+    
     if (!req.user || !req.user.id) {
       return ApiResponseHandler.error(
         res,
@@ -483,10 +486,11 @@ export const getPendingEventsById = async (req: Request, res: Response) => {
         401
       );
     }
-
+    console.log("pending events")
     const response = await eventInstance.getPendingEventList(
       Number(req.user.id)
     );
+    console.log("pending events")
 
     if (!response.status) {
       return ApiResponseHandler.error(
