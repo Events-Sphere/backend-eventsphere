@@ -5,7 +5,7 @@ import {
 import db from "../../Config/knex";
 
 export class EventClass {
-  // Event Creation and Updates
+  
   createEvent = async (
     mainEventData: MainEventInterface,
     subEventData: SubEventInterface[]
@@ -193,7 +193,6 @@ export class EventClass {
       if (!events || events.length === 0) {
         return {
           status: false,
-          message: "No events found.",
           data: [],
         };
       }
