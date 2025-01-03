@@ -38,7 +38,7 @@ export class EventClass {
 
       return newId
         ? { status: true, data: newId }
-        : { status: false, message: "Failed to create sub-event" };
+        : { status: false};
     } catch (error) {
       console.error("Error creating sub-event:", error);
       return { status: false, message: "An error occurred." };
@@ -86,10 +86,10 @@ export class EventClass {
           .update({ sub_event_items: JSON.stringify(allSubEventIds) })
           .where("_id", "=", eventId);
       });
-      return { status: true, message: "Event updated successfully." };
+      return { status: true};
     } catch (error) {
       console.error("Error updating event:", error);
-      return { status: false, message: "Failed to update event." };
+      return { status: false };
     }
   };
 
@@ -105,7 +105,7 @@ export class EventClass {
 
       return mainEvent
         ? { status: true, data: mainEvent }
-        : { status: false, message: "Event not exists" };
+        : { status: false};
     } catch (error) {
       console.error("Error fetching event:", error);
       return { status: false, message: "An error occurred." };
@@ -159,7 +159,7 @@ export class EventClass {
       const events = await query;
 
       if (!events || events.length === 0) {
-        return { status: false, message: `No ${status} events found.`, data: [] };
+        return { status: false, data: [] };
       }
 
       const eventsWithSubEvents = await Promise.all(
@@ -174,7 +174,6 @@ export class EventClass {
 
       return {
         status: true,
-        message: `${status} events retrieved successfully.`,
         data: eventsWithSubEvents,
       };
     } catch (error) {
@@ -210,14 +209,12 @@ export class EventClass {
   
       return {
         status: true,
-        message: "All events retrieved successfully.",
         data: eventsWithSubEvents,
       };
     } catch (error) {
       console.error("Error fetching all events:", error);
       return {
         status: false,
-        message: "An error occurred while retrieving all events.",
         data: [],
       };
     }
@@ -229,9 +226,7 @@ export class EventClass {
   
       if (!events || events.length === 0) {
         return {
-          status: false,
-          message: `No events found for user ID: ${userId}.`,
-          data: [],
+          status: false, data: [],
         };
       }
       const eventsWithSubEvents = await Promise.all(
@@ -246,7 +241,6 @@ export class EventClass {
   
       return {
         status: true,
-        message: `Events for user ID: ${userId} retrieved successfully.`,
         data: eventsWithSubEvents,
       };
     } catch (error) {
@@ -256,7 +250,6 @@ export class EventClass {
       );
       return {
         status: false,
-        message: "An error occurred while retrieving events by user ID.",
         data: [],
       };
     }
@@ -404,7 +397,6 @@ export class EventClass {
 
       return {
         status: true,
-        message: "Popular events retrieved successfully.",
         data: eventDetails.filter(Boolean),
       };
     } catch (error) {
@@ -432,7 +424,6 @@ export class EventClass {
 
       return {
         status: true,
-        message: "Upcoming events retrieved successfully.",
         data: eventsWithSubEvents,
       };
     } catch (error) {
@@ -505,10 +496,10 @@ export class EventClass {
               active_events: JSON.stringify(active_events),
             });
         }
-        return { status: true, message: "Event status updated successfully." };
+        return { status: true };
       }
   
-      return { status: false, message: "Not all sub-events processed." };
+      return { status: false };
     } catch (error) {
       console.error("Error updating event status:", error);
       return {
@@ -528,7 +519,6 @@ export class EventClass {
       if (!eventsByCategory || eventsByCategory.length === 0) {
         return {
           status: false,
-          message: `No events found for category: ${categoryName}.`,
           data: [],
         };
       }
@@ -545,14 +535,12 @@ export class EventClass {
   
       return {
         status: true,
-        message: `Events under category: ${categoryName} retrieved successfully.`,
         data: eventsWithSubEvents,
       };
     } catch (error) {
       console.error("Error fetching events by category:", error);
       return {
         status: false,
-        message: "An error occurred while retrieving events by category.",
         data: [],
       };
     }
