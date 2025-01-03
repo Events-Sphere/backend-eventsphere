@@ -498,6 +498,8 @@ export const updateEvent = async (req: Request, res: Response, next: any) => {
   }
 };
 
+// GET PENDING EVENTS ENDPOINT--> http://localhost:3000/api/v1/events/pending
+
 export const getPendingEventsById = async (req: Request, res: Response) => {
   try {
     
@@ -533,6 +535,9 @@ export const getPendingEventsById = async (req: Request, res: Response) => {
   }
 };
 
+// GET COMPLETED EVENTS ENDPOINT--> http://localhost:3000/api/v1/events/completed
+
+
 export const getCompletedEventsById = async (req: Request, res: Response) => {
   try {
     if (!req.user || !req.user.id) {
@@ -565,6 +570,8 @@ export const getCompletedEventsById = async (req: Request, res: Response) => {
     return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
+
+// GET ACTIVE EVENTS ENDPOINT--> http://localhost:3000/api/v1/events/active
 
 export const getActiveEventsById = async (req: Request, res: Response) => {
   try {

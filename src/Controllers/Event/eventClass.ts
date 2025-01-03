@@ -14,11 +14,27 @@ export class EventClass {
       const [eventId] = await db("events")
         .insert(mainEventData)
         .returning("_id");
+       
+        let subEventIds=[];
 
       for (let subEvent of subEventData) {
         subEvent.event_id = eventId;
-        await db("subevents").insert(subEvent);
+       const [sub]= await db("subevents").insert(subEvent);
+       subEventIds.push(sub);
       }
+
+      // push subEvent ids into main event
+
+      const subEvent= await db("events").where({_id:eventId}).update({
+        sub_event_items:JSON.stringify(subEventIds)
+      });
+
+
+      
+
+
+
+
       return { status: true, data: eventId };
     } catch (error) {
       console.error("Error creating event:", error);
