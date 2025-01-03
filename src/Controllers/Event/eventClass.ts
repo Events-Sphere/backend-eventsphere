@@ -1,4 +1,3 @@
-
 import {
   MainEventInterface,
   SubEventInterface,
@@ -8,12 +7,10 @@ import db from "../../Config/knex";
 export class EventClass {
   
   createEvent = async (
-    // mainEventData: MainEventInterface,
-    mainEventData: any,
+    mainEventData: MainEventInterface,
     subEventData: SubEventInterface[]
   ): Promise<{ status: boolean; data?: any }> => {
     try {
-
       const [eventId] = await db("events")
         .insert(mainEventData)
         .returning("_id");
@@ -162,7 +159,7 @@ export class EventClass {
       const events = await query;
 
       if (!events || events.length === 0) {
-        return { status: true, data: [] };
+        return { status: false, data: [] };
       }
 
       const eventsWithSubEvents = await Promise.all(

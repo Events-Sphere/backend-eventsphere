@@ -200,7 +200,6 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     const subEventsData: SubEventInterface[] = [];
 
     let idx = 0;
-    let totalAmount = 0;
     for (let subEvent of data.sub_events) {
       if (!isValidSubEventData(subEvent)) {
         return ApiResponseHandler.error(
@@ -229,7 +228,6 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
         );
       }
 
-      totalAmount = totalAmount + subEvent.ticket_price;
       const subevent: SubEventInterface = {
         name: subEvent.name,
         description: subEvent.description,
@@ -298,23 +296,21 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       );
     }
 
-    if (response.status === true) {
+    if (response.status) {
+      const updateOrganizerEventCount =
+      await eventInstance.updateOrganizationPendingEvent(
+        mainEvents.org_id,
+        response.data._id
+      );
+    if (!updateOrganizerEventCount.status) {
+      console.log(
+        "call the fn again to update count of the envent and organization pending events as well"
+      );
+    }
       return ApiResponseHandler.success(
         res,
         response.data,
         "Event created successfully."
-      );
-    }
-
-    const updateOrganizerEventCount =
-      await eventInstance.updateOrganizationEventCounts(
-        mainEvents.org_id,
-        totalAmount,
-        subEventIds
-      );
-    if (updateOrganizerEventCount.status === false) {
-      console.log(
-        "call the fn again to update count of the envent and organization pending events as well"
       );
     }
   } catch (err) {
