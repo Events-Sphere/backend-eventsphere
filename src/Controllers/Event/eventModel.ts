@@ -1,7 +1,6 @@
 import { Response, Request } from "express";
 import { ApiResponseHandler } from "../../Middleware/apiResponseMiddleware";
 import {
-  EventInterface,
   MainEventInterface,
   SubEventInterface,
 } from "../../Interfaces/eventInterface";
@@ -127,7 +126,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
 
 
-    const data: EventInterface = JSON.parse(req.body.data);
+    const data: MainEventInterface = JSON.parse(req.body.data);
 
     if (!isValidEventData(data)) {
       return ApiResponseHandler.error(res, "Invalid event data provided.", 401);

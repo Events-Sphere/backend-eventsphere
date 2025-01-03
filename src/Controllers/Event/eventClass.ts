@@ -5,7 +5,6 @@ import {
 import db from "../../Config/knex";
 
 export class EventClass {
-  
   createEvent = async (
     mainEventData: MainEventInterface,
     subEventData: SubEventInterface[]
@@ -14,26 +13,19 @@ export class EventClass {
       const [eventId] = await db("events")
         .insert(mainEventData)
         .returning("_id");
-       
-        let subEventIds=[];
+
+      let subEventIds = [];
 
       for (let subEvent of subEventData) {
         subEvent.event_id = eventId;
-       const [sub]= await db("subevents").insert(subEvent);
-       subEventIds.push(sub);
+        const [sub] = await db("subevents").insert(subEvent);
+        subEventIds.push(sub);
       }
-
-      // push subEvent ids into main event
-
-      const subEvent= await db("events").where({_id:eventId}).update({
-        sub_event_items:JSON.stringify(subEventIds)
-      });
-
-
-      
-
-
-
+      const subEvent = await db("events")
+        .where({ _id: eventId })
+        .update({
+          sub_event_items: JSON.stringify(subEventIds),
+        });
 
       return { status: true, data: eventId };
     } catch (error) {
@@ -52,9 +44,7 @@ export class EventClass {
         event_id: eventId,
       });
 
-      return newId
-        ? { status: true, data: newId }
-        : { status: false};
+      return newId ? { status: true, data: newId } : { status: false };
     } catch (error) {
       console.error("Error creating sub-event:", error);
       return { status: false, message: "An error occurred." };
@@ -82,9 +72,7 @@ export class EventClass {
             .first();
 
           existingSubEvent
-            ? await trx("subevents")
-                .update(subEvent)
-                .where("_id", subEvent._id)
+            ? await trx("subevents").update(subEvent).where("_id", subEvent._id)
             : await trx("subevents").insert(subEvent);
         }
 
@@ -102,14 +90,13 @@ export class EventClass {
           .update({ sub_event_items: JSON.stringify(allSubEventIds) })
           .where("_id", "=", eventId);
       });
-      return { status: true};
+      return { status: true };
     } catch (error) {
       console.error("Error updating event:", error);
       return { status: false };
     }
   };
 
-  // Fetch Events
   getEventById = async (
     eventId: number
   ): Promise<{ status: boolean; data?: any; message?: string }> => {
@@ -119,9 +106,7 @@ export class EventClass {
         .where("_id", "=", eventId)
         .first();
 
-      return mainEvent
-        ? { status: true, data: mainEvent }
-        : { status: false};
+      return mainEvent ? { status: true, data: mainEvent } : { status: false };
     } catch (error) {
       console.error("Error fetching event:", error);
       return { status: false, message: "An error occurred." };
@@ -152,7 +137,6 @@ export class EventClass {
     return this.getEventsByStatus("active");
   };
 
-
   getRejectedEventList = async (userId: number): Promise<any> => {
     return this.getEventsByStatus("rejected", userId);
   };
@@ -161,8 +145,6 @@ export class EventClass {
     return this.getEventsByStatus("rejected");
   };
 
-
-  // Generalized Fetch by Status
   private getEventsByStatus = async (
     status: string,
     orgId?: number
@@ -170,7 +152,9 @@ export class EventClass {
     try {
       const query = db("events").select("*").where("active_status", status);
 
-      if (orgId) query.andWhere("org_id", orgId);
+      if (orgId) {
+        query.andWhere("org_id", orgId);
+      }
 
       const events = await query;
 
@@ -181,10 +165,19 @@ export class EventClass {
       const eventsWithSubEvents = await Promise.all(
         events.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
+
           const subEvents = subEventIds.length
-            ? await db("subevents").whereIn("_id", subEventIds)
+            ? await db("subevents")
+                .whereIn("_id", subEventIds)
+                .where("event_id", event._id)
             : [];
-          return { ...event, sub_events: subEvents };
+
+          const subEventsWithImages = subEvents.map((subEvent: any) => ({
+            ...subEvent,
+            cover_images: JSON.parse(subEvent.cover_images || "[]"),
+          }));
+
+          return { ...event, sub_events: subEventsWithImages };
         })
       );
 
@@ -196,7 +189,6 @@ export class EventClass {
       console.error(`Error fetching ${status} events:`, error);
       return {
         status: false,
-        message: `An error occurred while retrieving ${status} events.`,
         data: [],
       };
     }
@@ -205,7 +197,7 @@ export class EventClass {
   getAllEventList = async (): Promise<any> => {
     try {
       const events = await db("events").select("*");
-  
+
       if (!events || events.length === 0) {
         return {
           status: false,
@@ -221,7 +213,7 @@ export class EventClass {
           return { ...event, sub_events: subEvents };
         })
       );
-  
+
       return {
         status: true,
         data: eventsWithSubEvents,
@@ -238,10 +230,11 @@ export class EventClass {
   getAllEventsById = async (userId: number): Promise<any> => {
     try {
       const events = await db("events").where("org_id", userId).select("*");
-  
+
       if (!events || events.length === 0) {
         return {
-          status: false, data: [],
+          status: false,
+          data: [],
         };
       }
       const eventsWithSubEvents = await Promise.all(
@@ -253,25 +246,20 @@ export class EventClass {
           return { ...event, sub_events: subEvents };
         })
       );
-  
+
       return {
         status: true,
         data: eventsWithSubEvents,
       };
     } catch (error) {
-      console.error(
-        `Error fetching events for user ID: ${userId}:`,
-        error
-      );
+      console.error(`Error fetching events for user ID: ${userId}:`, error);
       return {
         status: false,
         data: [],
       };
     }
   };
-  
 
-  // Utility Methods
   updateOrganizationPendingEvent = async (
     orgId: number,
     eventId: number
@@ -333,7 +321,6 @@ export class EventClass {
     }
   };
 
-  // Search Methods
   searchEventList = async ({
     queryText,
     location,
@@ -465,7 +452,7 @@ export class EventClass {
           .whereIn("_id", approveIds)
           .update({ status: "available" });
       }
-  
+
       if (rejectIds?.length > 0) {
         for (let i = 0; i < rejectIds.length; i++) {
           await db("subevents")
@@ -474,36 +461,36 @@ export class EventClass {
             .update({ status: "cancelled", denial_reason: reasons[i] });
         }
       }
-  
+
       const result = await db("subevents")
         .select("org_id")
         .count("_id as count")
         .where("event_id", eventId)
         .first();
-  
+
       const totalProcessed = approveIds.length + rejectIds.length;
-  
+
       if (result?.count === totalProcessed) {
         await db("events")
           .where("_id", eventId)
           .update({ status: 1, active_status: "active" });
-  
+
         const organizerEventStatus = await db("organizations")
           .select("pending_events", "active_events")
           .where("_id", result?.org_id)
           .first();
-  
+
         if (organizerEventStatus) {
           const { pending_events, active_events } = organizerEventStatus;
-  
+
           const updatedPendingEvents = (pending_events || []).filter(
             (eventID: number) => eventID !== eventId
           );
-  
+
           if (!active_events?.includes(eventId)) {
             active_events.push(eventId);
           }
-  
+
           await db("organizations")
             .where("_id", result?.org_id)
             .update({
@@ -513,7 +500,7 @@ export class EventClass {
         }
         return { status: true };
       }
-  
+
       return { status: false };
     } catch (error) {
       console.error("Error updating event status:", error);
@@ -524,20 +511,19 @@ export class EventClass {
     }
   };
 
-  
   getEventsByCategoryName = async (categoryName: string): Promise<any> => {
     try {
       const eventsByCategory = await db("events")
         .select("*")
         .where("category", categoryName);
-  
+
       if (!eventsByCategory || eventsByCategory.length === 0) {
         return {
           status: false,
           data: [],
         };
       }
-  
+
       const eventsWithSubEvents = await Promise.all(
         eventsByCategory.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
@@ -547,7 +533,7 @@ export class EventClass {
           return { ...event, sub_events: subEvents };
         })
       );
-  
+
       return {
         status: true,
         data: eventsWithSubEvents,
@@ -560,5 +546,4 @@ export class EventClass {
       };
     }
   };
-  
 }
