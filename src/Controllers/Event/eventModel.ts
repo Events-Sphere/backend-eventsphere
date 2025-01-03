@@ -29,7 +29,7 @@ const isValidEventData = (data: any): data is MainEventInterface => {
   const requiredFields = [
     "name",
     "location",
-    "org_id",
+    
     "description",
     "longitude",
     "latitude",
@@ -37,6 +37,8 @@ const isValidEventData = (data: any): data is MainEventInterface => {
     "audience_type",
     "currency",
     "is_main",
+    "starting_date",
+    "ending_date"
   ];
 
   for (const field of requiredFields) {
@@ -58,6 +60,7 @@ const isValidSubEventData = (subEvent: any): subEvent is SubEventInterface => {
     "description",
     "start_time",
     "end_time",
+    "restrictions",
     "starting_date",
     "hostedBy",
     "host_email",
@@ -66,7 +69,6 @@ const isValidSubEventData = (subEvent: any): subEvent is SubEventInterface => {
     "ticket_quantity",
     "ticket_type",
     "ticket_price",
-    "restrictions",
   ];
 
   for (const field of requiredFields) {
@@ -95,6 +97,10 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
         400
       );
     }
+    const user = req.user;
+    if (!user) {
+      return ApiResponseHandler.warning(res, "Something went wrong", 500);
+    }
 
     const imageList: ParsedFiles = {
       main_image: null,
@@ -119,6 +125,8 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       return ApiResponseHandler.error(res, "Image files not found", 400);
     }
 
+
+
     const data: EventInterface = JSON.parse(req.body.data);
 
     if (!isValidEventData(data)) {
@@ -137,6 +145,8 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       return ApiResponseHandler.error(res, "Sub-events must be an array.", 400);
     }
 
+
+
     const mainImgFile = imageList.main_image;
 
     if (mainImgFile === null || mainImgFile === undefined) {
@@ -150,7 +160,14 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       Object.keys(coverImgFiles).length === 0
     ) {
       return ApiResponseHandler.error(res, "Cover Images are required", 400);
-    }
+    };
+
+    const imageKeys = Object.keys(imageList.sub_cover_images ?? []);
+
+    if (imageKeys.length !== data.sub_events.length) {
+      return ApiResponseHandler.error(res, "Sub events cover Images are required", 400);
+    };
+
 
     const imgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadSingleImage(
@@ -239,13 +256,13 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     const mainEvents = {
       name: data.name,
       location: data.location,
-      org_id: data.org_id,
+      org_id: user.id,
       description: data.description,
       registration_start: moment(data.registration_start).format(
-        "YYYY-MM-DD HH:mm:ss"
+        "YYYY-MM-DD"
       ),
       registration_end: moment(data.registration_end).format(
-        "YYYY-MM-DD HH:mm:ss"
+        "YYYY-MM-DD"
       ),
       latitude: data.latitude,
       longitude: data.longitude,
@@ -257,6 +274,15 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       main_image: imgUploadedResponse.url,
       cover_images: JSON.stringify(coverImgUploadedResponse.urls),
       is_main: data.is_main,
+      starting_date:moment(data.starting_date).format(
+        "YYYY-MM-DD"
+      )
+      ,
+      ending_date:moment(data.ending_date).format(
+        "YYYY-MM-DD"
+      )
+      
+
     };
 
     const response: any = await eventInstance.createEvent(
@@ -781,6 +807,35 @@ export const searchEvents = async (req: Request, res: Response) => {
   }
 };
 
+export const searchEventsByStatus = async (req: Request, res: Response) => {
+  try {
+    const { queryText, status } = req.body;
+
+    const response = await eventInstance.searchEventsByStatus({
+      queryText,
+      status,
+    });
+
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.EVENTS_NOT_FOUND,
+        404
+      );
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    console.error("Error searching events:", error);
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
 export const updateEventStatus = async (req: Request, res: Response) => {
   try {
     const { data } = req.body;
@@ -794,15 +849,23 @@ export const updateEventStatus = async (req: Request, res: Response) => {
     const eventResponse = await eventInstance.getEventById(eventId);
 
     if (!eventResponse.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.EVENT_NOT_FOUND, 404);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.EVENT_NOT_FOUND,
+        404
+      );
     }
 
     const requestApproveEventIds: number[] = data.approveEventIds || [];
-    const requestRejectEventIds: number[] = Object.keys(data.rejectEvents || {}).map(Number);
-    const requestRejectEventReasons : string[] = Object.values(data.rejectEvents || {}).map(String);
+    const requestRejectEventIds: number[] = Object.keys(
+      data.rejectEvents || {}
+    ).map(Number);
+    const requestRejectEventReasons: string[] = Object.values(
+      data.rejectEvents || {}
+    ).map(String);
 
-
-    const totalIds = requestApproveEventIds.length + requestRejectEventIds.length;
+    const totalIds =
+      requestApproveEventIds.length + requestRejectEventIds.length;
 
     if (eventResponse.data.sub_event_items.length !== totalIds) {
       return ApiResponseHandler.error(res, COMMON_MESSAGES.MISMATCHED_IDS, 400);
@@ -811,12 +874,16 @@ export const updateEventStatus = async (req: Request, res: Response) => {
     const response = await eventInstance.updateEventStatus({
       eventId,
       approveIds: requestApproveEventIds,
-      rejectIds:  requestRejectEventIds,
-      reasons : requestRejectEventReasons
+      rejectIds: requestRejectEventIds,
+      reasons: requestRejectEventReasons,
     });
 
     if (!response.status) {
-      return ApiResponseHandler.error(res, COMMON_MESSAGES.APPROVE_FAILURE, 500);
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.APPROVE_FAILURE,
+        500
+      );
     }
 
     return ApiResponseHandler.success(
@@ -826,12 +893,132 @@ export const updateEventStatus = async (req: Request, res: Response) => {
       200
     );
   } catch (error: any) {
-    console.error('Error updating event status:', error);
+    console.error("Error updating event status:", error);
     return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };
 
+export const getAllRejectedEventsList = async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
+    }
 
+    const response = await eventInstance.getAllRejectedEventList();
 
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
+    }
 
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Rejected events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+export const getAllRejectedEventsById = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
+    }
 
+    const response = await eventInstance.getRejectedEventList(
+      Number(req.user.id)
+    );
+
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Active events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const getAllEventsList = async (req: Request, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
+    }
+
+    const response = await eventInstance.getAllEventList();
+
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};
+
+export const getAllEventsbyId = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.AUTHENTICATION_FAILED,
+        401
+      );
+    }
+
+    const response = await eventInstance.getAllEventsById(Number(req.user.id));
+
+    if (!response.status) {
+      return ApiResponseHandler.error(
+        res,
+        COMMON_MESSAGES.RESOURCE_NOT_FOUND,
+        404
+      );
+    }
+
+    return ApiResponseHandler.success(
+      res,
+      response.data,
+      "Events retrieved successfully.",
+      200
+    );
+  } catch (error: any) {
+    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+  }
+};

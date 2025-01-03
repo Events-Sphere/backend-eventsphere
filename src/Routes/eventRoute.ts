@@ -3,7 +3,8 @@ import * as EventModel from "../Controllers/Event/eventModel";
 import { FileUploadMiddleware } from "../Middleware/fileUploadMiddleware";
 import { AuthenticateUser } from "../Middleware/authenticateUserMiddleware";
 const router = Router();
-const fileUploadInstance = new FileUploadMiddleware();
+const fileUploadInstance =new FileUploadMiddleware();
+// const imageParserInstance = new ImageParser();
 
 //<---- Event router----->
 router.post("/create",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, fileUploadInstance.middleware(), EventModel.createEvent);

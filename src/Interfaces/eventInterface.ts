@@ -1,7 +1,7 @@
 export interface EventInterface {
   name: string;
   location: string;
-  org_id: number;
+  
   description: string;
   registration_start: Date | string | any;
   registration_end: Date | string | any;
@@ -14,7 +14,10 @@ export interface EventInterface {
   main_image?: any; 
   cover_images?: any; 
   is_main: number; 
+  
   sub_events: SubEventInterface[]; 
+  
+  
 }
 
 export interface MainEventInterface extends Omit<EventInterface, "sub_events"> {
@@ -22,6 +25,10 @@ export interface MainEventInterface extends Omit<EventInterface, "sub_events"> {
   tags: string | any; 
   main_image: string; 
   cover_images: string; 
+  starting_date: Date | string | any;
+  ending_date: Date | string | any;
+  
+  
 }
 
 export interface SubEventInterface {
