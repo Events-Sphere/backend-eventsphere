@@ -177,7 +177,9 @@ export class EventClass {
             cover_images: JSON.parse(subEvent.cover_images || "[]"),
           }));
 
-          return { ...event, sub_events: subEventsWithImages };
+          const  parsedEventData = {...event, cover_images:JSON.parse(event.cover_images), tags : JSON.parse(event.tags),restrictions : JSON.parse(event.restrictions)};
+
+          return { ...parsedEventData, sub_events: subEventsWithImages };
         })
       );
 
