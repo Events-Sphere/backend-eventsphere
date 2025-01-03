@@ -117,6 +117,8 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       return ApiResponseHandler.error(res, "Image files not found", 400);
     }
 
+
+
     const data: EventInterface = JSON.parse(req.body.data);
 
     if (!isValidEventData(data)) {
@@ -135,6 +137,8 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       return ApiResponseHandler.error(res, "Sub-events must be an array.", 400);
     }
 
+
+
     const mainImgFile = imageList.main_image;
 
     if (mainImgFile === null || mainImgFile === undefined) {
@@ -148,7 +152,14 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       Object.keys(coverImgFiles).length === 0
     ) {
       return ApiResponseHandler.error(res, "Cover Images are required", 400);
-    }
+    };
+
+    const imageKeys = Object.keys(imageList.sub_cover_images ?? []);
+
+    if (imageKeys.length !== data.sub_events.length) {
+      return ApiResponseHandler.error(res, "Sub events cover Images are required", 400);
+    };
+
 
     const imgUploadedResponse: FileStorageResponse =
       await FirebaseStorage.uploadSingleImage(
