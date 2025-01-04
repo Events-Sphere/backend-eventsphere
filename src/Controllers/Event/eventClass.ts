@@ -413,8 +413,8 @@ export class EventClass {
     try {
       const upcomingEvents = await db("events")
         .select("*")
-        .where("registration_start", ">", new Date())
-        .orderBy("registration_start", "asc");
+        .where("starting_date", ">", new Date())
+        .orderBy("starting_date", "asc");
 
       const eventsWithSubEvents = await Promise.all(
         upcomingEvents.map(async (event: any) => {
