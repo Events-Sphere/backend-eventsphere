@@ -1,7 +1,8 @@
-interface ApiResponse {  success: boolean;
+import { ApiResponseHandler } from "../Middleware/apiResponseMiddleware";
+import { Response } from "express";
+
+interface ApiResponse {  
   data?: any;
-  message?: string;
-  error?: string;
 }
 
 class CacheEntry {
@@ -19,7 +20,7 @@ class CacheEntry {
   }
 }
 
-class LRUCache {
+export class LRUCache {
    capacity: number;
    cacheMap : Map<string, CacheEntry>;
    mostRecentEntry : CacheEntry | null;
@@ -89,19 +90,19 @@ class LRUCache {
   }
 
   //<-- get ---->
-  getResponse = (url : string) =>{
+  getResponse = (url : string, res : Response) =>{
     if(!this.cacheMap.has(url)){
         console.log("Cache is not stored your request data");
-        //next(); allow access to fetch data from database
+        return {status : false}
     }
         const responseData = this.cacheMap.get(url);
         this.markAsMostRecent(responseData as CacheEntry);
-        return responseData?.response;
+        return ApiResponseHandler.success(res, responseData?.response , "success response", 200);
     
   }
 
   //<-- put ---->
-  storeResponse = (url : string , response : ApiResponse) =>{
+  storeResponse = async (url : string , response : ApiResponse) =>{
     if(this.cacheMap.has(url)){
         const entry  = this.cacheMap.get(url);
         this.markAsMostRecent(entry as CacheEntry);
@@ -115,6 +116,11 @@ class LRUCache {
         this.cacheMap.set(url,newEntry);
         this.addToMostRecent(newEntry);
     }
+  }
+
+  //<--- is valid key --->
+  keyExists = (url : string)=>{
+    return this.cacheMap.has(url);
   }
 
 }

@@ -1,4 +1,4 @@
-import { Response, Request } from "express";
+import { Response, Request, NextFunction } from "express";
 import { ApiResponseHandler } from "../../Middleware/apiResponseMiddleware";
 import {
   MainEventInterface,
@@ -8,6 +8,9 @@ import { EventClass } from "./eventClass";
 import { FirebaseStorage } from "../../Services/Storage";
 import moment from "moment";
 import { COMMON_MESSAGES } from "../../Common/messages";
+import { LRUCache } from "../../Cache/LRUCache";
+
+const cache = new LRUCache(3);
 
 interface FileStorageResponse {
   status: boolean;
@@ -702,7 +705,7 @@ export const getCompletedEvents = async (req: Request, res: Response) => {
   }
 };
 
-export const getActiveEvents = async (req: Request, res: Response) => {
+export const getActiveEvents = async (req: Request, res: Response , next : NextFunction) => {
   try {
     if (!req.user || !req.user.id) {
       return ApiResponseHandler.error(
@@ -710,6 +713,10 @@ export const getActiveEvents = async (req: Request, res: Response) => {
         COMMON_MESSAGES.AUTHENTICATION_FAILED,
         401
       );
+    }
+
+    if(cache.keyExists(req.originalUrl)){
+      cache.getResponse(req.originalUrl , res);
     }
 
     const response = await eventInstance.getAllActiveEventList();
@@ -721,6 +728,8 @@ export const getActiveEvents = async (req: Request, res: Response) => {
         404
       );
     }
+
+    await cache.storeResponse(req.originalUrl , response.data);
 
     return ApiResponseHandler.success(
       res,
@@ -735,6 +744,11 @@ export const getActiveEvents = async (req: Request, res: Response) => {
 
 export const getPopularEvents = async (req: Request, res: Response) => {
   try {
+
+    if(cache.keyExists(req.originalUrl)){
+      cache.getResponse(req.originalUrl , res);
+    }
+
     const response = await eventInstance.getPopularEventList();
 
     if (!response.status) {
@@ -744,6 +758,8 @@ export const getPopularEvents = async (req: Request, res: Response) => {
         404
       );
     }
+
+    await cache.storeResponse(req.originalUrl, response.date);
 
     return ApiResponseHandler.success(
       res,
@@ -758,6 +774,10 @@ export const getPopularEvents = async (req: Request, res: Response) => {
 
 export const getUpcomingEvents = async (req: Request, res: Response) => {
   try {
+
+    if(cache.keyExists(req.originalUrl)){
+      cache.getResponse(req.originalUrl, res);
+    }
     const response = await eventInstance.getUpcomingEventList();
 
     if (!response.status) {
@@ -767,7 +787,9 @@ export const getUpcomingEvents = async (req: Request, res: Response) => {
         404
       );
     }
-
+    
+    await cache.storeResponse(req.originalUrl , response.data);
+    
     return ApiResponseHandler.success(
       res,
       response.data,
