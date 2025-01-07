@@ -93,7 +93,7 @@ export class LRUCache {
   getResponse = (url : string, res : Response) =>{
     if(!this.cacheMap.has(url)){
         console.log("Cache is not stored your request data");
-        return {status : false}
+        return;
     }
         const responseData = this.cacheMap.get(url);
         this.markAsMostRecent(responseData as CacheEntry);
