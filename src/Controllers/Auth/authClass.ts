@@ -105,6 +105,7 @@ export class AuthClass {
           .select("*")
           .from("users")
           .where("email", userData.email);
+          
         resolve({ status: true, data: results });
       } catch (e) {
         reject({
@@ -186,7 +187,7 @@ export class AuthClass {
     });
   };
 
-  getSingleUser = async (
+  getUserProfile = async (
     role: string,
     id: number
   ): Promise<{ status: boolean; data?: any }> => {
@@ -195,14 +196,62 @@ export class AuthClass {
         let results: any;
         switch (role) {
           case "user":
-            results = await db.select("*").from("users").where({ _id: id });
+           const user = await db.select("name", "email", "c_code", "mobile", "profile", "role","location", "proof", "status").from("users").where({ _id: id });
+            results=[
+              {
+                name: user[0].name,
+                email: user[0].email,
+                c_code: user[0].c_code,
+                mobile: user[0].mobile,
+                profile: user[0].profile,
+                role: user[0].role,
+                location: user[0].location,
+                proof: JSON.parse(user[0].proof),
+                status: user[0].status,
+                
+              }
+            ]
             break;
           case "organizer":
             //PENDING --> Combine two tables
-            results = await db.select("*").from("users").where({ _id: id });
+ // "_id", "name", "email", "password", "c_code", "mobile", "profile", "role", "createdAt", "requestedAt", "approvedBy", "approvedAt", "denial_reason", "location", "favorite_events", "cart_events", "bookings", "proof", "longitude", "latitude", "status"
+
+
+            const data1 = await db.select("name", "email", "c_code", "mobile", "profile", "role","location", "proof", "status").from("users").where({ _id: id });
+            const data2 = await db.select("name","code","noc").from("organizations").where({ _id: id });
+            results=[
+              {
+                name: data1[0].name,
+                email: data1[0].email,
+                c_code: data1[0].c_code,
+                mobile: data1[0].mobile,
+                profile: data1[0].profile,
+                role: data1[0].role,
+                location: data1[0].location,
+                proof: JSON.parse(data1[0].proof),
+                status: data1[0].status,
+                collegeName: data2[0].name,
+                collegeCode: data2[0].code,
+                noc: data2[0].noc,
+              }
+            ]
             break;
           case "squard":
-            results = await db.select("*").from("users").where({ _id: id });
+           const squard = await db.select("name", "email", "c_code", "mobile", "profile", "role","location", "proof", "status").from("users").where({ _id: id });
+            results=[
+              {
+                name: squard[0].name,
+                email: squard[0].email,
+                c_code: squard[0].c_code,
+                mobile: squard[0].mobile,
+                profile: squard[0].profile,
+                role: squard[0].role,
+                location: squard[0].location,
+                proof: JSON.parse(squard[0].proof),
+                status: squard[0].status,
+                
+              }
+            ]
             break;
           default:
             results = [];
@@ -210,6 +259,7 @@ export class AuthClass {
         }
         resolve({ status: true, data: results });
       } catch (error) {
+        console.log(error)
         reject({
           status: false,
         });

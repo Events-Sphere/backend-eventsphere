@@ -14,7 +14,6 @@ router.post(
   AuthModel.signup
 );
 
-router.post("/verify",AuthenticateUser.verifyToken, AuthModel.verifyUserIdentity);
 
 export default router;
 

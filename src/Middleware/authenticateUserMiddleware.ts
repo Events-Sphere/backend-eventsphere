@@ -7,28 +7,43 @@ export class AuthenticateUser {
   static async verifyToken(req: Request, res: Response, next: NextFunction) {
     try {
       const token = req.headers["authorization"];
-      
+
       const isToken = token && token.split(" ")[1];
       if (!isToken) {
-        
         return ApiResponseHandler.error(res, "Token not found", 403);
       }
       const SECRET_KEY = process.env.JWT_SECRET_KEY || "12345qwer";
       jwt.verify(isToken, SECRET_KEY, (error, data) => {
-        
         if (error) {
           if (error.name === "TokenExpiredError") {
             return ApiResponseHandler.error(res, "Token expired", 401);
           }
           return ApiResponseHandler.error(res, "Invalid token", 401);
         }
-       
-        
+
         req.user = data as Iuser;
         next();
       });
-      
     } catch (error: any) {
+      return ApiResponseHandler.error(res, "Internal server error", 501);
+    }
+  }
+
+  static async isUserFound(req: Request, res: Response, next: NextFunction) {
+    try {
+      const user = req.user;
+
+      if (!user?.id || !user?.role) {
+        return ApiResponseHandler.error(res, "Token invalid", 401);
+      }
+
+      const isUser = await db.select("*").from("users").where({ _id: user.id });
+      if (isUser.length <= 0) {
+        return ApiResponseHandler.error(res, "User not found", 401);
+      } else {
+        next();
+      }
+    } catch (error) {
       return ApiResponseHandler.error(res, "Internal server error", 501);
     }
   }
@@ -49,17 +64,13 @@ export class AuthenticateUser {
           return ApiResponseHandler.error(res, "Admin not found", 401);
         }
         next();
-      }
-      else{
+      } else {
         return ApiResponseHandler.error(
           res,
           "you not have access to use this route",
           401
         );
-
       }
-
-      
     } catch (error) {
       return ApiResponseHandler.error(res, "Internal server error", 501);
     }
@@ -72,7 +83,7 @@ export class AuthenticateUser {
   ) {
     try {
       const user = req.user;
-      console.log(user)
+      console.log(user);
 
       if (!user?.id || !user?.role) {
         return ApiResponseHandler.error(res, "Token invalid", 401);
@@ -83,7 +94,7 @@ export class AuthenticateUser {
           .select("*")
           .from("users")
           .where({ _id: user.id, role: "organizer" });
-         
+
         if (isOrganizer.length <= 0) {
           return ApiResponseHandler.error(res, "organizer not found", 401);
         }
@@ -103,10 +114,7 @@ export class AuthenticateUser {
           );
         }
         next();
-       
-      }
-      
-      else{
+      } else {
         return ApiResponseHandler.error(
           res,
           "you not have access to use this route",

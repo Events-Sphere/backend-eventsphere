@@ -19,6 +19,8 @@ const ENVIRONMENT = process.env.NODE_ENV || 3000;
 const corseOptions = {origin: "*"};
 
 app.use(express.static("public"));
+
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors(corseOptions));

@@ -190,7 +190,7 @@ export const signup = async (req: Request, res: Response) => {
         return ApiResponseHandler.error(res, "Image files not found", 400);
       }
 
-      if( imageList.noc == null || imageList.proof.length <=0 ){
+      if (imageList.noc == null || imageList.proof.length <= 0) {
         return ApiResponseHandler.error(res, "noc or proof missing", 400);
       }
 
@@ -234,7 +234,7 @@ export const signup = async (req: Request, res: Response) => {
         );
       }
     }
-console.log(responseData)
+
     const token: any = await Jwt.generateToken({
       id: responseData.data[0],
       role: userData.role,
@@ -258,7 +258,7 @@ console.log(responseData)
 
 export const verifyUserIdentity = async (req: Request, res: Response) => {
   try {
-    const userData = req.body;
+    const userData = JSON.parse(req.body.data);
     const user = req.user;
     if (!user) {
       return ApiResponseHandler.warning(res, "Something went wrong", 500);
@@ -282,14 +282,6 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
 
     if (!Validators.isValidMobile(userData.mobile)) {
       return ApiResponseHandler.warning(res, "Enter valid mobile", 401);
-    }
-
-    if (!Validators.isValidPassword(userData.password)) {
-      return ApiResponseHandler.warning(
-        res,
-        "Password must be at least 8 characters long, with at least one uppercase letter, one lowercase letter, one number, and one special character (e.g., !@#$%^&*())",
-        401
-      );
     }
 
     const isUserVerified = await authInstance.isVerifiedUser(user!.id);
@@ -341,14 +333,18 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
 
     const proof: any[] = [];
 
-    if (Array.isArray(req.body.files)) {
-      (req.body.files as Express.Multer.File[]).forEach((file) => {
+    if (Array.isArray(req.files)) {
+      (req.files as Express.Multer.File[]).forEach((file) => {
         if (file.fieldname === "proof") {
           proof.push(file);
         }
       });
     } else {
       return ApiResponseHandler.error(res, "Image files not found", 400);
+    }
+
+    if (proof.length <= 0) {
+      return ApiResponseHandler.error(res, " proof missing", 400);
     }
 
     const proofImgUploadedResponse: FileStorageResponse =
@@ -363,12 +359,7 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
 
     console.log(proofImgUploadedResponse);
 
-    userData.proof = JSON.stringify(proofImgUploadedResponse);
-
-    const hashedPassword = await PasswordEncryption.hashPassword(
-      userData.password
-    );
-    userData.password = hashedPassword;
+    userData.proof = JSON.stringify(proofImgUploadedResponse.urls);
 
     const responseData = await authInstance.updateUserIdentity(
       user!.id,
@@ -388,9 +379,61 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
       200
     );
   } catch (error) {
+    console.log(error);
     return ApiResponseHandler.error(res, "Internal server error", 501);
   }
 };
+
+//------------------------
+
+export const getUserProfile = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+    if (! user?.id) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
+    if (! user?.role) {
+      return ApiResponseHandler.warning(res, "User role missing", 400);
+    }
+    //PENDING --> Combine two tables
+
+    const userData = await authInstance.getUserProfile(user.role, user.id);
+    console.log(userData)
+    if (userData.data.length <= 0) {
+      return ApiResponseHandler.warning(res, "userData not found", 404);
+    }
+
+    return ApiResponseHandler.success(res, userData.data, "User", 200);
+  } catch (error) {
+    console.log(error)
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // //CHANGE-PASSWORD ENDPOINT--> http://localhost:3000/
 
