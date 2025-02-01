@@ -1,7 +1,6 @@
-import { Response, Request } from "express";
+import { Response, Request, NextFunction } from "express";
 import { ApiResponseHandler } from "../../Middleware/apiResponseMiddleware";
 import {
-  EventInterface,
   MainEventInterface,
   SubEventInterface,
 } from "../../Interfaces/eventInterface";
@@ -9,6 +8,9 @@ import { EventClass } from "./eventClass";
 import { FirebaseStorage } from "../../Services/Storage";
 import moment from "moment";
 import { COMMON_MESSAGES } from "../../Common/messages";
+import { LRUCache } from "../../Cache/LRUCache";
+
+const cache = new LRUCache(3);
 
 interface FileStorageResponse {
   status: boolean;
@@ -127,7 +129,7 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
 
 
 
-    const data: EventInterface = JSON.parse(req.body.data);
+    const data: MainEventInterface = JSON.parse(req.body.data);
 
     if (!isValidEventData(data)) {
       return ApiResponseHandler.error(res, "Invalid event data provided.", 401);
@@ -200,7 +202,6 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
     const subEventsData: SubEventInterface[] = [];
 
     let idx = 0;
-    let totalAmount = 0;
     for (let subEvent of data.sub_events) {
       if (!isValidSubEventData(subEvent)) {
         return ApiResponseHandler.error(
@@ -229,7 +230,6 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
         );
       }
 
-      totalAmount = totalAmount + subEvent.ticket_price;
       const subevent: SubEventInterface = {
         name: subEvent.name,
         description: subEvent.description,
@@ -298,23 +298,21 @@ export const createEvent = async (req: Request, res: Response, next: any) => {
       );
     }
 
-    // if (response.status === true) {
-    //   return ApiResponseHandler.success(
-    //     res,
-    //     response.data,
-    //     "Event created successfully."
-    //   );
-    // }
-
-    const updateOrganizerEventCount =
-      await eventInstance.updateOrganizationEventCounts(
-        user.id,
-        totalAmount,
-        subEventIds
+    if (response.status) {
+      const updateOrganizerEventCount =
+      await eventInstance.updateOrganizationPendingEvent(
+        mainEvents.org_id,
+        response.data._id
       );
-    if (updateOrganizerEventCount.status === false) {
+    if (!updateOrganizerEventCount.status) {
       console.log(
         "call the fn again to update count of the envent and organization pending events as well"
+      );
+    }
+      return ApiResponseHandler.success(
+        res,
+        response.data,
+        "Event created successfully."
       );
     }
   } catch (err) {
@@ -514,11 +512,11 @@ export const getPendingEventsById = async (req: Request, res: Response) => {
         401
       );
     }
-    console.log("pending events")
+    
     const response = await eventInstance.getPendingEventList(
       Number(req.user.id)
     );
-    console.log("pending events")
+    console.log(response)
 
     if (!response.status) {
       return ApiResponseHandler.error(
@@ -591,6 +589,7 @@ export const getActiveEventsById = async (req: Request, res: Response) => {
       Number(req.user.id)
     );
 
+    console.log(response.status)
     if (!response.status) {
       return ApiResponseHandler.error(
         res,
@@ -612,8 +611,8 @@ export const getActiveEventsById = async (req: Request, res: Response) => {
 
 export const getEventsByCategoryName = async (req: Request, res: Response) => {
   try {
-    const { categoryName } = req.query;
-
+    const { categoryName } = req.body;
+console.log(categoryName)
     if (!categoryName) {
       return ApiResponseHandler.error(
         res,
@@ -707,7 +706,7 @@ export const getCompletedEvents = async (req: Request, res: Response) => {
   }
 };
 
-export const getActiveEvents = async (req: Request, res: Response) => {
+export const getActiveEvents = async (req: Request, res: Response , next : NextFunction) => {
   try {
     if (!req.user || !req.user.id) {
       return ApiResponseHandler.error(
@@ -715,6 +714,10 @@ export const getActiveEvents = async (req: Request, res: Response) => {
         COMMON_MESSAGES.AUTHENTICATION_FAILED,
         401
       );
+    }
+
+    if(cache.keyExists(req.originalUrl)){
+      cache.getResponse(req.originalUrl , res);
     }
 
     const response = await eventInstance.getAllActiveEventList();
@@ -726,6 +729,8 @@ export const getActiveEvents = async (req: Request, res: Response) => {
         404
       );
     }
+
+    await cache.storeResponse(req.originalUrl , response.data);
 
     return ApiResponseHandler.success(
       res,
@@ -740,6 +745,11 @@ export const getActiveEvents = async (req: Request, res: Response) => {
 
 export const getPopularEvents = async (req: Request, res: Response) => {
   try {
+
+    if(cache.keyExists(req.originalUrl)){
+      cache.getResponse(req.originalUrl , res);
+    }
+
     const response = await eventInstance.getPopularEventList();
 
     if (!response.status) {
@@ -749,6 +759,8 @@ export const getPopularEvents = async (req: Request, res: Response) => {
         404
       );
     }
+
+    await cache.storeResponse(req.originalUrl, response.date);
 
     return ApiResponseHandler.success(
       res,
@@ -763,8 +775,15 @@ export const getPopularEvents = async (req: Request, res: Response) => {
 
 export const getUpcomingEvents = async (req: Request, res: Response) => {
   try {
-    const response = await eventInstance.getUpcomingEventList();
 
+    if(cache.keyExists(req.originalUrl)){
+    return  cache.getResponse(req.originalUrl, res);
+    }
+
+    console.log("first");
+    const response = await eventInstance.getUpcomingEventList();
+    console.log("first");
+    console.log(response.status);
     if (!response.status) {
       return ApiResponseHandler.error(
         res,
@@ -773,12 +792,20 @@ export const getUpcomingEvents = async (req: Request, res: Response) => {
       );
     }
 
+    console.log("before")
+  
+    await cache.storeResponse(req.originalUrl , response.data);
+    console.log("after")
     return ApiResponseHandler.success(
       res,
       response.data,
       "Upcoming events retrieved successfully.",
       200
     );
+    console.log("------")
+
+
+
   } catch (error: any) {
     return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
@@ -788,11 +815,16 @@ export const searchEvents = async (req: Request, res: Response) => {
   try {
     const { queryText, location, category } = req.body;
 
+   
+    const tempLocation:any[]=location.length <=0 ? []:location.split(",") 
+    const tempCategory:any[]=category.length <=0 ? []:category.split(",") 
+   
     const response = await eventInstance.searchEventList({
       queryText,
-      location,
-      category,
+      tempLocation,
+      tempCategory,
     });
+ 
 
     if (!response.status) {
       return ApiResponseHandler.error(
@@ -814,34 +846,34 @@ export const searchEvents = async (req: Request, res: Response) => {
   }
 };
 
-export const searchEventsByStatus = async (req: Request, res: Response) => {
-  try {
-    const { queryText, status } = req.body;
+// export const searchEventsByStatus = async (req: Request, res: Response) => {
+//   try {
+//     const { queryText, status } = req.body;
 
-    const response = await eventInstance.searchEventsByStatus({
-      queryText,
-      status,
-    });
+//     const response = await eventInstance.searchEventsByStatus({
+//       queryText,
+//       status,
+//     });
 
-    if (!response.status) {
-      return ApiResponseHandler.error(
-        res,
-        COMMON_MESSAGES.EVENTS_NOT_FOUND,
-        404
-      );
-    }
+//     if (!response.status) {
+//       return ApiResponseHandler.error(
+//         res,
+//         COMMON_MESSAGES.EVENTS_NOT_FOUND,
+//         404
+//       );
+//     }
 
-    return ApiResponseHandler.success(
-      res,
-      response.data,
-      "Events retrieved successfully.",
-      200
-    );
-  } catch (error: any) {
-    console.error("Error searching events:", error);
-    return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
-  }
-};
+//     return ApiResponseHandler.success(
+//       res,
+//       response.data,
+//       "Events retrieved successfully.",
+//       200
+//     );
+//   } catch (error: any) {
+//     console.error("Error searching events:", error);
+//     return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
+//   }
+// };
 
 export const updateEventStatus = async (req: Request, res: Response) => {
   try {

@@ -1,4 +1,3 @@
-
 import {
   MainEventInterface,
   SubEventInterface,
@@ -6,37 +5,28 @@ import {
 import db from "../../Config/knex";
 
 export class EventClass {
-  
   createEvent = async (
-    // mainEventData: MainEventInterface,
-    mainEventData: any,
+    mainEventData: MainEventInterface,
     subEventData: SubEventInterface[]
   ): Promise<{ status: boolean; data?: any }> => {
     try {
-
       const [eventId] = await db("events")
         .insert(mainEventData)
         .returning("_id");
-       
-        let subEventIds=[];
+
+      let subEventIds = [];
 
       for (let subEvent of subEventData) {
         subEvent.event_id = eventId;
-       const [sub]= await db("subevents").insert(subEvent);
-       subEventIds.push(sub);
+        const [sub] = await db("subevents").insert(subEvent);
+        subEventIds.push(sub);
       }
-
-      // push subEvent ids into main event
-
-      const subEvent= await db("events").where({_id:eventId}).update({
-        sub_event_items:JSON.stringify(subEventIds)
-      });
-
-
-      
-
-
-
+      console.log(subEventIds)
+      const subEvent = await db("events")
+        .where({ _id: eventId })
+        .update({
+          sub_event_items: JSON.stringify(subEventIds),
+        });
 
       return { status: true, data: eventId };
     } catch (error) {
@@ -55,9 +45,7 @@ export class EventClass {
         event_id: eventId,
       });
 
-      return newId
-        ? { status: true, data: newId }
-        : { status: false};
+      return newId ? { status: true, data: newId } : { status: false };
     } catch (error) {
       console.error("Error creating sub-event:", error);
       return { status: false, message: "An error occurred." };
@@ -85,9 +73,7 @@ export class EventClass {
             .first();
 
           existingSubEvent
-            ? await trx("subevents")
-                .update(subEvent)
-                .where("_id", subEvent._id)
+            ? await trx("subevents").update(subEvent).where("_id", subEvent._id)
             : await trx("subevents").insert(subEvent);
         }
 
@@ -105,14 +91,13 @@ export class EventClass {
           .update({ sub_event_items: JSON.stringify(allSubEventIds) })
           .where("_id", "=", eventId);
       });
-      return { status: true};
+      return { status: true };
     } catch (error) {
       console.error("Error updating event:", error);
       return { status: false };
     }
   };
 
-  // Fetch Events
   getEventById = async (
     eventId: number
   ): Promise<{ status: boolean; data?: any; message?: string }> => {
@@ -122,9 +107,7 @@ export class EventClass {
         .where("_id", "=", eventId)
         .first();
 
-      return mainEvent
-        ? { status: true, data: mainEvent }
-        : { status: false};
+      return mainEvent ? { status: true, data: mainEvent } : { status: false };
     } catch (error) {
       console.error("Error fetching event:", error);
       return { status: false, message: "An error occurred." };
@@ -155,7 +138,6 @@ export class EventClass {
     return this.getEventsByStatus("active");
   };
 
-
   getRejectedEventList = async (userId: number): Promise<any> => {
     return this.getEventsByStatus("rejected", userId);
   };
@@ -164,8 +146,6 @@ export class EventClass {
     return this.getEventsByStatus("rejected");
   };
 
-
-  // Generalized Fetch by Status
   private getEventsByStatus = async (
     status: string,
     orgId?: number
@@ -173,9 +153,12 @@ export class EventClass {
     try {
       const query = db("events").select("*").where("active_status", status);
 
-      if (orgId) query.andWhere("org_id", orgId);
+      if (orgId) {
+        query.andWhere("org_id", orgId);
+      }
 
       const events = await query;
+    
 
       if (!events || events.length === 0) {
         return { status: true, data: [] };
@@ -184,12 +167,24 @@ export class EventClass {
       const eventsWithSubEvents = await Promise.all(
         events.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
+
           const subEvents = subEventIds.length
-            ? await db("subevents").whereIn("_id", subEventIds)
+            ? await db("subevents")
+                .whereIn("_id", subEventIds)
+                .where("event_id", event._id)
             : [];
-          return { ...event, sub_events: subEvents };
+
+          const subEventsWithImages = subEvents.map((subEvent: any) => ({
+            ...subEvent,
+            cover_images: JSON.parse(subEvent.cover_images || "[]"),
+          }));
+
+          const  parsedEventData = {...event, cover_images:JSON.parse(event.cover_images), tags : JSON.parse(event.tags)};
+          // restrictions : JSON.parse(event.restrictions)
+          return { ...parsedEventData, sub_events: subEventsWithImages };
         })
       );
+      
 
       return {
         status: true,
@@ -199,7 +194,6 @@ export class EventClass {
       console.error(`Error fetching ${status} events:`, error);
       return {
         status: false,
-        message: `An error occurred while retrieving ${status} events.`,
         data: [],
       };
     }
@@ -208,7 +202,7 @@ export class EventClass {
   getAllEventList = async (): Promise<any> => {
     try {
       const events = await db("events").select("*");
-  
+
       if (!events || events.length === 0) {
         return {
           status: false,
@@ -224,7 +218,7 @@ export class EventClass {
           return { ...event, sub_events: subEvents };
         })
       );
-  
+
       return {
         status: true,
         data: eventsWithSubEvents,
@@ -241,10 +235,11 @@ export class EventClass {
   getAllEventsById = async (userId: number): Promise<any> => {
     try {
       const events = await db("events").where("org_id", userId).select("*");
-  
+console.log(events)
       if (!events || events.length === 0) {
         return {
-          status: false, data: [],
+          status: false,
+          data: [],
         };
       }
       const eventsWithSubEvents = await Promise.all(
@@ -256,25 +251,20 @@ export class EventClass {
           return { ...event, sub_events: subEvents };
         })
       );
-  
+
       return {
         status: true,
         data: eventsWithSubEvents,
       };
     } catch (error) {
-      console.error(
-        `Error fetching events for user ID: ${userId}:`,
-        error
-      );
+      console.error(`Error fetching events for user ID: ${userId}:`, error);
       return {
         status: false,
         data: [],
       };
     }
   };
-  
 
-  // Utility Methods
   updateOrganizationPendingEvent = async (
     orgId: number,
     eventId: number
@@ -335,23 +325,38 @@ export class EventClass {
       return { status: false, data: null };
     }
   };
-
-  // Search Methods
+  // New York, USA
   searchEventList = async ({
     queryText,
-    location,
-    category,
+    tempLocation,
+    tempCategory,
   }: {
     queryText?: string;
-    location?: string;
-    category?: string;
+    tempLocation?: string[];
+    tempCategory?: string[];
   }): Promise<any> => {
     try {
-      const query = db("events").select("*");
-      if (queryText) query.where("name", "like", `%${queryText}%`);
-      if (location) query.andWhere("location", "=", location);
-      if (category) query.andWhere("category", "=", category);
+      console.log(queryText);
+      console.log(tempLocation);
+      console.log(tempCategory)
+      
+      const query = db("events").select("*")
+     .where("name", "like", `%${queryText}%`)
+    //   .andWhere("location", "in", Array.isArray(tempLocation)?tempLocation : [])
+    //  .andWhere("category", "in", Array.isArray(tempCategory)?tempCategory : []);
+    if (Array.isArray(tempLocation) && tempLocation.length > 0) {
+      query.andWhere("location", "in", tempLocation);
+    }
+    
+    if (Array.isArray(tempCategory) && tempCategory.length > 0) {
+      query.andWhere("category", "in", tempCategory);
+    }
 
+      // const query = db("events").select("*");
+      // if (queryText) query.where("name", "like", `%${queryText}%`);
+      // if (tempLocation!.length > 0) query.andWhere("location", "in", tempLocation)
+      // if (tempCategory) query.andWhere("category", "in", tempCategory);
+     
       const mainEvents = await query;
 
       const eventsWithSubEvents = await Promise.all(
@@ -374,15 +379,15 @@ export class EventClass {
     }
   };
 
-  searchEventsByStatus = async ({
-    queryText,
-    status,
-  }: {
-    queryText?: string;
-    status?: string;
-  }): Promise<any> => {
-    return this.searchEventList({ queryText, category: status });
-  };
+  // searchEventsByStatus = async ({
+  //   queryText,
+  //   status,
+  // }: {
+  //   queryText?: string;
+  //   status?: string;
+  // }): Promise<any> => {
+  //   return this.searchEventList({ queryText, category: status });
+  // };
 
   getPopularEventList = async (): Promise<any> => {
     try {
@@ -427,8 +432,8 @@ export class EventClass {
     try {
       const upcomingEvents = await db("events")
         .select("*")
-        .where("registration_start", ">", new Date())
-        .orderBy("registration_start", "asc");
+        // .where("starting_date", ">", new Date())
+        // .orderBy("starting_date", "asc");
 
       const eventsWithSubEvents = await Promise.all(
         upcomingEvents.map(async (event: any) => {
@@ -468,7 +473,7 @@ export class EventClass {
           .whereIn("_id", approveIds)
           .update({ status: "available" });
       }
-  
+
       if (rejectIds?.length > 0) {
         for (let i = 0; i < rejectIds.length; i++) {
           await db("subevents")
@@ -477,36 +482,36 @@ export class EventClass {
             .update({ status: "cancelled", denial_reason: reasons[i] });
         }
       }
-  
+
       const result = await db("subevents")
         .select("org_id")
         .count("_id as count")
         .where("event_id", eventId)
         .first();
-  
+
       const totalProcessed = approveIds.length + rejectIds.length;
-  
+
       if (result?.count === totalProcessed) {
         await db("events")
           .where("_id", eventId)
           .update({ status: 1, active_status: "active" });
-  
+
         const organizerEventStatus = await db("organizations")
           .select("pending_events", "active_events")
           .where("_id", result?.org_id)
           .first();
-  
+
         if (organizerEventStatus) {
           const { pending_events, active_events } = organizerEventStatus;
-  
+
           const updatedPendingEvents = (pending_events || []).filter(
             (eventID: number) => eventID !== eventId
           );
-  
+
           if (!active_events?.includes(eventId)) {
             active_events.push(eventId);
           }
-  
+
           await db("organizations")
             .where("_id", result?.org_id)
             .update({
@@ -516,7 +521,7 @@ export class EventClass {
         }
         return { status: true };
       }
-  
+
       return { status: false };
     } catch (error) {
       console.error("Error updating event status:", error);
@@ -527,20 +532,19 @@ export class EventClass {
     }
   };
 
-  
   getEventsByCategoryName = async (categoryName: string): Promise<any> => {
     try {
       const eventsByCategory = await db("events")
         .select("*")
         .where("category", categoryName);
-  
+
       if (!eventsByCategory || eventsByCategory.length === 0) {
         return {
           status: false,
           data: [],
         };
       }
-  
+
       const eventsWithSubEvents = await Promise.all(
         eventsByCategory.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
@@ -550,7 +554,7 @@ export class EventClass {
           return { ...event, sub_events: subEvents };
         })
       );
-  
+
       return {
         status: true,
         data: eventsWithSubEvents,
@@ -563,13 +567,4 @@ export class EventClass {
       };
     }
   };
-  
 }
-
-
-
-
-
-
-
-

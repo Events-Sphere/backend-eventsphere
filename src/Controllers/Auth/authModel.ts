@@ -99,9 +99,9 @@ export const signup = async (req: Request, res: Response) => {
     } else {
       userData = req.body;
     }
-
+    //rollback implement
     //latitude and longitude range should check==>pending
-    //college code range check
+    //college code range check and duplicate check
 
     if (!userData.role) {
       return ApiResponseHandler.warning(res, "user role is required", 401);
@@ -213,8 +213,11 @@ export const signup = async (req: Request, res: Response) => {
         );
       }
 
+      console.log(nocPdfUploadedResponse);
+
       userData.proof = JSON.stringify(proofImgUploadedResponse.urls);
-      userData.noc = nocPdfUploadedResponse.url;
+      userData.collegeNoc = nocPdfUploadedResponse.url;
+      console.log(userData);
 
       responseData = await authInstance.organizerSignup(userData);
       if (responseData.status === false) {
@@ -389,51 +392,26 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
 export const getUserProfile = async (req: Request, res: Response) => {
   try {
     const user = req.user;
-    if (! user?.id) {
+    if (!user?.id) {
       return ApiResponseHandler.warning(res, "User id missing", 400);
     }
-    if (! user?.role) {
+    if (!user?.role) {
       return ApiResponseHandler.warning(res, "User role missing", 400);
     }
     //PENDING --> Combine two tables
 
     const userData = await authInstance.getUserProfile(user.role, user.id);
-    console.log(userData)
+    console.log(userData);
     if (userData.data.length <= 0) {
       return ApiResponseHandler.warning(res, "userData not found", 404);
     }
 
     return ApiResponseHandler.success(res, userData.data, "User", 200);
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return ApiResponseHandler.error(res, "Internal server error", 501);
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // //CHANGE-PASSWORD ENDPOINT--> http://localhost:3000/
 

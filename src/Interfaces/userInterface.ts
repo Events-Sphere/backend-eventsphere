@@ -38,7 +38,6 @@ export interface OrganizerSignupInterface {
   collegeName:string;
   collegeCode:string;
   collegeNoc:string;
-
 }
 export interface SquardInterface {
   name:string;

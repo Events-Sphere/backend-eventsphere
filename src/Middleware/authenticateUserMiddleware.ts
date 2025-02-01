@@ -137,6 +137,8 @@ export class AuthenticateUser {
       if (!user?.id || !user?.role) {
         return ApiResponseHandler.error(res, "Token invalid", 401);
       }
+      console.log(`User Id : ${user.id}`);
+      console.log(`User Role : ${user.role}`);
 
       if (user.role === "user") {
         const isUser = await db
@@ -146,6 +148,8 @@ export class AuthenticateUser {
         if (isUser.length <= 0) {
           return ApiResponseHandler.error(res, "user not found", 401);
         }
+
+        console.log(`User Status : ${isUser[0].status}`)
 
         if (isUser[0].status === "pending") {
           return ApiResponseHandler.error(
@@ -163,13 +167,16 @@ export class AuthenticateUser {
         }
 
         next();
+      }else
+      {
+        return ApiResponseHandler.error(
+          res,
+          "you not have access to use this route",
+          401
+        );
       }
 
-      return ApiResponseHandler.error(
-        res,
-        "you not have access to use this route",
-        401
-      );
+      
     } catch (error) {
       return ApiResponseHandler.error(res, "Internal server error", 501);
     }

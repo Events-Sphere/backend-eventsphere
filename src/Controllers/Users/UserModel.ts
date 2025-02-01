@@ -14,8 +14,8 @@ export const addToFavorite = async (req: Request, res: Response) => {
       );
     }
 
-    const { favoriteId } = req.body;
-    if (!favoriteId) {
+    const { favouriteId } = req.body;
+    if (!favouriteId) {
       return ApiResponseHandler.error(
         res,
         "Favorite event ID is required.",
@@ -25,7 +25,7 @@ export const addToFavorite = async (req: Request, res: Response) => {
 
     const response = await userInstance.addFavoriteEvent(
       Number(req.user.id),
-      Number(favoriteId)
+      Number(favouriteId)
     );
 
     if (!response.status) {
@@ -53,6 +53,8 @@ export const addToFavorite = async (req: Request, res: Response) => {
 
 export const removeFromFavorite = async (req: Request, res: Response) => {
   try {
+
+    //PENDING ---> if i give an number first check if the event id is present or not in users table
     if (!req.user || !req.user.id) {
       return ApiResponseHandler.error(
         res,
@@ -61,8 +63,8 @@ export const removeFromFavorite = async (req: Request, res: Response) => {
       );
     }
 
-    const { favoriteId } = req.body;
-    if (!favoriteId) {
+    const { favouriteId } = req.body;
+    if (!favouriteId) {
       return ApiResponseHandler.error(
         res,
         "Favorite event ID is required.",
@@ -72,7 +74,7 @@ export const removeFromFavorite = async (req: Request, res: Response) => {
 
     const response = await userInstance.removeFavoriteEvent(
       Number(req.user.id),
-      Number(favoriteId)
+      Number(favouriteId)
     );
 
     if (!response.status) {
@@ -100,6 +102,8 @@ export const removeFromFavorite = async (req: Request, res: Response) => {
 
 export const getFavoriteEvents = async (req: Request, res: Response) => {
   try {
+
+    //PENDING ----->Get required datas only
     if (!req.user || !req.user.id) {
       return ApiResponseHandler.error(
         res,
