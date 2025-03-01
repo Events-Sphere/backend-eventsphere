@@ -28,12 +28,13 @@ export class FileUploadMiddleware {
         }
 
         const MAX_FILE_SIZE = 15 * 1024 * 1024; 
-        const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"];
+        const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf","application/octet-stream"];
 
         
         const invalidFiles = files.filter(
           (file) => file.size > MAX_FILE_SIZE || !ALLOWED_MIME_TYPES.includes(file.mimetype)
         );
+        console.log(invalidFiles)
 
         if (invalidFiles.length > 0) {
           return ApiResponseHandler.error(

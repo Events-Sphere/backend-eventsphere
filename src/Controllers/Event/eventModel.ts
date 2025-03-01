@@ -776,14 +776,11 @@ export const getPopularEvents = async (req: Request, res: Response) => {
 export const getUpcomingEvents = async (req: Request, res: Response) => {
   try {
 
-    if(cache.keyExists(req.originalUrl)){
-    return  cache.getResponse(req.originalUrl, res);
-    }
-
-    console.log("first");
+    // if(cache.keyExists(req.originalUrl)){
+    // return  cache.getResponse(req.originalUrl, res);
+    // }
     const response = await eventInstance.getUpcomingEventList();
-    console.log("first");
-    console.log(response.status);
+   
     if (!response.status) {
       return ApiResponseHandler.error(
         res,
@@ -791,21 +788,13 @@ export const getUpcomingEvents = async (req: Request, res: Response) => {
         404
       );
     }
-
-    console.log("before")
-  
-    await cache.storeResponse(req.originalUrl , response.data);
-    console.log("after")
+    // await cache.storeResponse(req.originalUrl , response.data);
     return ApiResponseHandler.success(
       res,
       response.data,
       "Upcoming events retrieved successfully.",
       200
     );
-    console.log("------")
-
-
-
   } catch (error: any) {
     return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
@@ -814,6 +803,11 @@ export const getUpcomingEvents = async (req: Request, res: Response) => {
 export const searchEvents = async (req: Request, res: Response) => {
   try {
     const { queryText, location, category } = req.body;
+
+    // if(!queryText ||! location ||! category){
+    //   return ApiResponseHandler.warning(res,"Give all fields", 401);
+
+    // }
 
    
     const tempLocation:any[]=location.length <=0 ? []:location.split(",") 

@@ -48,7 +48,7 @@ export class CategoryClass {
   
   async getAllCategories(): Promise<any> {
     try {
-      const categories = await db("categories").select("*");
+      const categories = await db("categories").select("name","image");
 
       if (categories.length === 0) {
         return { status: true, data: []};

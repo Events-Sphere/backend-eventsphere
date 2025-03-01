@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from "express";
+import e, { NextFunction, Request, Response } from "express";
 import { Iuser } from "../types/express";
 import { ApiResponseHandler } from "./apiResponseMiddleware";
 import jwt from "jsonwebtoken";
@@ -15,16 +15,17 @@ export class AuthenticateUser {
       const SECRET_KEY = process.env.JWT_SECRET_KEY || "12345qwer";
       jwt.verify(isToken, SECRET_KEY, (error, data) => {
         if (error) {
+          console.log(error)
           if (error.name === "TokenExpiredError") {
             return ApiResponseHandler.error(res, "Token expired", 401);
           }
           return ApiResponseHandler.error(res, "Invalid token", 401);
         }
-
         req.user = data as Iuser;
         next();
       });
     } catch (error: any) {
+      console.log(error)
       return ApiResponseHandler.error(res, "Internal server error", 501);
     }
   }
@@ -58,7 +59,7 @@ export class AuthenticateUser {
       if (user.role === "admin") {
         const isAdmin = await db
           .select("*")
-          .from("admin")
+          .from("users")
           .where({ _id: user.id });
         if (isAdmin.length <= 0) {
           return ApiResponseHandler.error(res, "Admin not found", 401);
@@ -72,6 +73,7 @@ export class AuthenticateUser {
         );
       }
     } catch (error) {
+      console.log(error)
       return ApiResponseHandler.error(res, "Internal server error", 501);
     }
   }
@@ -137,8 +139,8 @@ export class AuthenticateUser {
       if (!user?.id || !user?.role) {
         return ApiResponseHandler.error(res, "Token invalid", 401);
       }
-      console.log(`User Id : ${user.id}`);
-      console.log(`User Role : ${user.role}`);
+      // console.log(`User Id : ${user.id}`);
+      // console.log(`User Role : ${user.role}`);
 
       if (user.role === "user") {
         const isUser = await db
@@ -149,12 +151,12 @@ export class AuthenticateUser {
           return ApiResponseHandler.error(res, "user not found", 401);
         }
 
-        console.log(`User Status : ${isUser[0].status}`)
+        // console.log(`User Status : ${isUser[0].status}`)
 
-        if (isUser[0].status === "pending") {
+        if (isUser[0].status === "inactive") {
           return ApiResponseHandler.error(
             res,
-            "user is verified request is pending..you are not allowed to create event",
+            "user is not verified user",
             401
           );
         }

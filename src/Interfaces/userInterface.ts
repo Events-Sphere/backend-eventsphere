@@ -21,7 +21,8 @@ export interface VerifyUserIdentityInterface {
   role:string;
   location:string;
   password: string;
-  proof:string
+  proof:string;
+  profile:String;
 }
 
 export interface OrganizerSignupInterface {

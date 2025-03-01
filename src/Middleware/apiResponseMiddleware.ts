@@ -16,10 +16,10 @@ export class ApiResponseHandler {
       res.status(statusCode).send(response);
     }
   
-    static error(res: Response, error: string, statusCode: number = 500): void {
+    static error(res: Response, message: string, statusCode: number = 500): void {
       const response: ApiResponse = {
         success: false,
-        error,
+        message,
       };
       res.status(statusCode).send(response);
     }

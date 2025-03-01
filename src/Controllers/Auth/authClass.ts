@@ -49,6 +49,26 @@ export class AuthClass {
     });
   };
 
+  isOrganizationCodeExists = async (
+    code: number,
+    
+  ): Promise<{ status: boolean; data?: any }> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const results: any = await db
+          .select("*")
+          .from("organizations")
+          .where("code", code)
+          
+        resolve({ status: true, data: results });
+      } catch (e) {
+        reject({
+          status: false,
+        });
+      }
+    });
+  };
+
   isUserExistsOnMobileOrEmailWithoutSpecificId = async (
     id: number,
     email: string,
@@ -56,11 +76,18 @@ export class AuthClass {
   ): Promise<{ status: boolean; data?: any }> => {
     return new Promise(async (resolve, reject) => {
       try {
+        // const results: any = await db
+        //   .select("*")
+        //   .from("users")
+        //   .where("email", email)
+        //   .orWhere("mobile", mobile)
+        //   .whereNot({ _id: id });
         const results: any = await db
           .select("*")
           .from("users")
-          .where("email", email)
-          .orWhere("mobile", mobile)
+          .where((query)=>{
+            query.where("email",email).orWhere("mobile",mobile)
+          })
           .whereNot({ _id: id });
         resolve({ status: true, data: results });
       } catch (e) {
@@ -86,6 +113,7 @@ export class AuthClass {
           password: userData.password,
           location: userData.location,
           proof: userData.proof,
+          profile:userData.profile
         });
         resolve({ status: true, data: results });
       } catch (e) {
@@ -129,8 +157,9 @@ export class AuthClass {
           password: userData.password,
           location: userData.location,
         });
-        resolve({ status: true, data: [] });
+        resolve({ status: true, data: results });
       } catch (e) {
+        console.log(e)
         reject({
           status: false,
         });
@@ -197,7 +226,7 @@ export class AuthClass {
         switch (role) {
           case "user":
            const user = await db.select("name", "email", "c_code", "mobile", "profile", "role","location", "proof", "status").from("users").where({ _id: id });
-            results=[
+            results=
               {
                 name: user[0].name,
                 email: user[0].email,
@@ -210,7 +239,7 @@ export class AuthClass {
                 status: user[0].status,
                 
               }
-            ]
+            
             break;
           case "organizer":
             //PENDING --> Combine two tables
@@ -257,6 +286,35 @@ export class AuthClass {
             results = [];
             break;
         }
+        resolve({ status: true, data: results });
+      } catch (error) {
+        console.log(error)
+        reject({
+          status: false,
+        });
+      }
+    });
+  };
+
+  
+  getUserNameAndLocation = async (
+    role: string,
+    id: number
+  ): Promise<{ status: boolean; data?: any }> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+           const user = await db.select("name","location").from("users").where({ _id: id });
+          const  results=
+              {
+                name: user[0].name,
+               
+                location: user[0].location,
+              
+                
+              }
+            
+           
         resolve({ status: true, data: results });
       } catch (error) {
         console.log(error)

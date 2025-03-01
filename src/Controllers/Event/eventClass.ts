@@ -3,6 +3,7 @@ import {
   SubEventInterface,
 } from "../../Interfaces/eventInterface";
 import db from "../../Config/knex";
+import { FormatDateAndTime } from "../../Utililes/formatDateAndTime";
 
 export class EventClass {
   createEvent = async (
@@ -339,7 +340,13 @@ console.log(events)
       console.log(queryText);
       console.log(tempLocation);
       console.log(tempCategory)
-      
+      if(!queryText &&Array.isArray(tempLocation) && tempLocation.length <= 0 &&Array.isArray(tempCategory) && tempCategory.length <= 0){
+        return {
+          status:true,
+          data: [],
+        };
+
+      }
       const query = db("events").select("*")
      .where("name", "like", `%${queryText}%`)
     //   .andWhere("location", "in", Array.isArray(tempLocation)?tempLocation : [])
@@ -359,15 +366,77 @@ console.log(events)
      
       const mainEvents = await query;
 
+      const updatedEvents=mainEvents.map(({_id,...data})=>({
+        id:_id,
+        ...data
+      }))
+
       const eventsWithSubEvents = await Promise.all(
-        mainEvents.map(async (event: any) => {
+        updatedEvents.map(async (event: any) => {
+          console.log("eeeeeeeeeee"+event.sub_event_items)
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
           const subEvents = subEventIds.length
             ? await db("subevents").select("*").whereIn("_id", subEventIds)
             : [];
-          return { ...event, sub_events: subEvents };
+
+            
+            const updatedSubEvents:any=subEvents.map(({_id,...data}:any)=>({
+              id:_id,
+              ...data
+            }))
+            const organizerDetail1=await db("users").where("_id",event.org_id);
+          
+          const organizerDetail2:any=await db("organizations").where("_id",event.org_id);
+
+
+
+
+          return {
+            organizerData:{
+              organizationName:organizerDetail2[0].name,
+              organizationCode:organizerDetail2[0].code,
+              organizationNoc:organizerDetail2[0].noc,
+              organizerName:organizerDetail1[0].name,
+              organizerEmail:organizerDetail1[0].name,
+              organizerMobile:organizerDetail1[0].name,
+              organizerCountryCode:organizerDetail1[0].name,
+              organizerProfile:organizerDetail1[0].profile,
+              organizerLocation:organizerDetail1[0].location,
+              organizerLongitude:organizerDetail1[0].name,
+              organizerLatitude:organizerDetail1[0].name,
+            },
+             eventData:{
+              ...event, sub_events: updatedSubEvents
+             } 
+            };
         })
       );
+      eventsWithSubEvents.forEach(data=>{
+        console.log("hhhhhhhh",data.eventData.sub_event_items);
+        
+        data.eventData.starting_date= FormatDateAndTime.formatDate(data.eventData.starting_date);
+        data.eventData.ending_date= FormatDateAndTime.formatDate(data.eventData.ending_date);
+        data.eventData.registration_start= FormatDateAndTime.formatDate(data.eventData.registration_start);
+        data.eventData.registration_end= FormatDateAndTime.formatDate(data.eventData.registration_end);
+        data.eventData.sub_event_items=JSON.parse(data.eventData.sub_event_items)
+        if (!Array.isArray(data.eventData.sub_event_items)) {
+          console.log("--------------");
+          data.eventData.sub_event_items = [data.eventData.sub_event_items]; 
+      }
+      console.log("Parsed:", data.eventData.sub_event_items, "Type:", typeof data.eventData.sub_event_items);
+      console.log("hhhhhhhh",data.eventData.sub_event_items);
+        data.eventData.tags=JSON.parse(data.eventData.tags)
+        data.eventData.cover_images=JSON.parse(data.eventData.cover_images)
+       
+        data.eventData.sub_events.forEach((subevent:any)=>{
+          subevent.cover_images=JSON.parse(subevent.cover_images)
+          subevent.restrictions=JSON.parse(subevent.restrictions)
+          subevent.starting_date= FormatDateAndTime.formatDate(subevent.starting_date);
+
+        })
+      });
+
+console.log("VEVET",eventsWithSubEvents[0].eventData.sub_event_items);
 
       return {
         status: true,
@@ -434,16 +503,73 @@ console.log(events)
         .select("*")
         // .where("starting_date", ">", new Date())
         // .orderBy("starting_date", "asc");
+        
+       const updatedUpcomingEvents=upcomingEvents.map(({_id,...data})=>({
+          id:_id,
+          ...data
+        }))
+
+
 
       const eventsWithSubEvents = await Promise.all(
-        upcomingEvents.map(async (event: any) => {
+        updatedUpcomingEvents.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
           const subEvents = subEventIds.length
             ? await db("subevents").whereIn("_id", subEventIds)
             : [];
-          return { ...event, sub_events: subEvents };
+
+            const updatedSubEvents:any=subEvents.map(({_id,...data}:any)=>({
+              id:_id,
+              ...data
+            }));;
+
+
+            const organizerDetail1=await db("users").where("_id",event.org_id);
+        
+          const organizerDetail2:any=await db("organizations").where("_id",event.org_id);
+
+
+          return {
+            organizerData:{
+              organizationName:organizerDetail2[0].name,
+              organizationCode:organizerDetail2[0].code,
+              organizationNoc:organizerDetail2[0].noc,
+              organizerName:organizerDetail1[0].name,
+              organizerEmail:organizerDetail1[0].name,
+              organizerMobile:organizerDetail1[0].name,
+              organizerCountryCode:organizerDetail1[0].name,
+              organizerProfile:organizerDetail1[0].profile,
+              organizerLocation:organizerDetail1[0].location,
+              organizerLongitude:organizerDetail1[0].name,
+              organizerLatitude:organizerDetail1[0].name,
+            },
+             eventData:{
+              ...event, sub_events: updatedSubEvents
+             } 
+            };
         })
       );
+
+      
+
+      eventsWithSubEvents.forEach(data=>{
+        console.log(data.eventData.starting_date)
+        data.eventData.starting_date= FormatDateAndTime.formatDate(data.eventData.starting_date);
+        console.log(data.eventData.starting_date)
+        data.eventData.ending_date= FormatDateAndTime.formatDate(data.eventData.ending_date);
+        data.eventData.registration_start= FormatDateAndTime.formatDate(data.eventData.registration_start);
+        data.eventData.registration_end= FormatDateAndTime.formatDate(data.eventData.registration_end);
+        data.eventData.sub_event_items=JSON.parse(data.eventData.sub_event_items)
+        data.eventData.tags=JSON.parse(data.eventData.tags)
+        data.eventData.cover_images=JSON.parse(data.eventData.cover_images)
+       
+        data.eventData.sub_events.forEach((subevent:any)=>{
+          subevent.cover_images=JSON.parse(subevent.cover_images)
+          subevent.restrictions=JSON.parse(subevent.restrictions)
+          subevent.starting_date= FormatDateAndTime.formatDate(subevent.starting_date);
+
+        })
+      })
 
       return {
         status: true,
@@ -540,7 +666,7 @@ console.log(events)
 
       if (!eventsByCategory || eventsByCategory.length === 0) {
         return {
-          status: false,
+          status: true,
           data: [],
         };
       }
@@ -551,15 +677,62 @@ console.log(events)
           const subEvents = subEventIds.length
             ? await db("subevents").whereIn("_id", subEventIds)
             : [];
-          return { ...event, sub_events: subEvents };
+
+            const organizerDetail1=await db("users").where("_id",event.org_id);
+          console.log(organizerDetail1)
+          const organizerDetail2:any=await db("organizations").where("_id",event.org_id);
+
+
+
+          return {
+            organizerData:{
+              organizationName:organizerDetail2[0].name,
+              organizationCode:organizerDetail2[0].code,
+              organizationNoc:organizerDetail2[0].noc,
+              organizerName:organizerDetail1[0].name,
+              organizerEmail:organizerDetail1[0].name,
+              organizerMobile:organizerDetail1[0].name,
+              organizerCountryCode:organizerDetail1[0].name,
+              organizerProfile:organizerDetail1[0].profile,
+              organizerLocation:organizerDetail1[0].location,
+              organizerLongitude:organizerDetail1[0].name,
+              organizerLatitude:organizerDetail1[0].name,
+            },
+             eventData:{
+              ...event, sub_events: subEvents
+             } 
+            };
         })
       );
+      eventsWithSubEvents.forEach(data=>{
+        
+        data.eventData.starting_date= FormatDateAndTime.formatDate(data.eventData.starting_date);
+        data.eventData.ending_date= FormatDateAndTime.formatDate(data.eventData.ending_date);
+        data.eventData.registration_start= FormatDateAndTime.formatDate(data.eventData.registration_start);
+        data.eventData.registration_end= FormatDateAndTime.formatDate(data.eventData.registration_end);
+        data.eventData.sub_event_items=JSON.parse(data.eventData.sub_event_items)
+        data.eventData.tags=JSON.parse(data.eventData.tags)
+        data.eventData.cover_images=JSON.parse(data.eventData.cover_images)
+      
+        data.eventData.sub_events.forEach((subevent:any)=>{
+          subevent.cover_images=JSON.parse(subevent.cover_images)
+          subevent.restrictions=JSON.parse(subevent.restrictions)
+          subevent.starting_date= FormatDateAndTime.formatDate(subevent.starting_date);
+
+        })
+      })
+
+
 
       return {
         status: true,
         data: eventsWithSubEvents,
       };
-    } catch (error) {
+    } 
+    
+
+
+    catch (error) {
       console.error("Error fetching events by category:", error);
       return {
         status: false,

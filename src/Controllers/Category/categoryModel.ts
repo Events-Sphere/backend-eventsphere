@@ -17,8 +17,9 @@ interface FileStorageResponse {
 
 export const createCategory = async (req: Request, res: Response) => {
   try {
-    const { name: categoryName, file: categoryImageFile } = req.body;
-
+    const { categoryName,file:categoryImageFile } = req.body;
+    console.log(req.body.categoryName);
+console.log({name: categoryName, file: categoryImageFile })
     if (!categoryName || !categoryImageFile) {
       return ApiResponseHandler.error(
         res,
@@ -64,6 +65,7 @@ export const createCategory = async (req: Request, res: Response) => {
       200
     );
   } catch (error: any) {
+    console.log(error)
     return ApiResponseHandler.error(res, COMMON_MESSAGES.SERVER_ERROR, 500);
   }
 };

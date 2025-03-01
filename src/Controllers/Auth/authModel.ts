@@ -33,11 +33,11 @@ export const login = async (req: Request, res: Response) => {
   try {
     const userData = req.body;
     if (!isValidData(userData, ["email", "password"])) {
-      return ApiResponseHandler.warning(res, "All fields are required", 401);
+      return ApiResponseHandler.warning(res, "All fields are required", null,401);
     }
 
     if (!Validators.isValidEmail(userData.email)) {
-      return ApiResponseHandler.warning(res, "Enter valid email", 401);
+      return ApiResponseHandler.warning(res, "Enter valid email", null,401);
     }
 
     const isUserExists: any = await authInstance.userLogin(userData);
@@ -53,7 +53,7 @@ export const login = async (req: Request, res: Response) => {
       return ApiResponseHandler.warning(
         res,
         "No user found with provided credentials",
-        401
+        null,401
       );
     }
 
@@ -65,7 +65,7 @@ export const login = async (req: Request, res: Response) => {
     if (!isPasswordCorrect) {
       return ApiResponseHandler.warning(
         res,
-        "Password does not match with your credentials",
+        "Password does not match with your credentials",null,
         401
       );
     }
@@ -82,7 +82,10 @@ export const login = async (req: Request, res: Response) => {
       );
     }
 
-    return ApiResponseHandler.success(res, token.data, "Login Successful", 200);
+    const accessToken={
+      accessToken:token.data
+    }
+    return ApiResponseHandler.success(res, accessToken, "Login Successful", 200);
   } catch (error) {
     return ApiResponseHandler.error(res, "Internal server error", 501);
   }
@@ -104,7 +107,7 @@ export const signup = async (req: Request, res: Response) => {
     //college code range check and duplicate check
 
     if (!userData.role) {
-      return ApiResponseHandler.warning(res, "user role is required", 401);
+      return ApiResponseHandler.warning(res, "user role is required",null, 401);
     }
 
     const requiredFields =
@@ -124,26 +127,26 @@ export const signup = async (req: Request, res: Response) => {
             "collegeCode",
           ];
     if (userData.role === "organizer" && !req.files) {
-      return ApiResponseHandler.warning(res, "all image files required ", 401);
+      return ApiResponseHandler.warning(res, "all image files required ",null, 401);
     }
 
     if (!isValidData(userData, requiredFields)) {
-      return ApiResponseHandler.warning(res, "All fields are requireds", 401);
+      return ApiResponseHandler.warning(res, "All fields are requireds",null, 401);
     }
 
     if (!Validators.isValidEmail(userData.email)) {
-      return ApiResponseHandler.warning(res, "Enter valid email", 401);
+      return ApiResponseHandler.warning(res, "Enter valid email",null, 401);
     }
 
     if (!Validators.isValidMobile(userData.mobile)) {
-      return ApiResponseHandler.warning(res, "Enter valid mobile", 401);
+      return ApiResponseHandler.warning(res, "Enter valid mobile",null, 401);
     }
 
     if (!Validators.isValidPassword(userData.password)) {
       return ApiResponseHandler.warning(
         res,
-        "Password must be at least 8 characters long, with at least one uppercase letter, one lowercase letter, one number, and one special character (e.g., !@#$%^&*())",
-        401
+        "Password must be at least 8 characters",
+       null, 401
       );
     }
 
@@ -158,11 +161,12 @@ export const signup = async (req: Request, res: Response) => {
         500
       );
     }
+    console.log(isUserExists.data.length)
     if (isUserExists.data.length > 0) {
       return ApiResponseHandler.warning(
         res,
         "Email or Mobile already in use",
-        401
+       null, 401
       );
     }
 
@@ -173,6 +177,24 @@ export const signup = async (req: Request, res: Response) => {
 
     let responseData: any;
     if (userData.role === "organizer") {
+      const isOrganiztionCodeExists: any = await authInstance.isOrganizationCodeExists(
+      userData.collegeCode
+      );
+      if (isOrganiztionCodeExists.status === false) {
+        return ApiResponseHandler.error(
+          res,
+          "Something went wrong. Try again!",
+          500
+        );
+      }
+      console.log(isOrganiztionCodeExists.data.length)
+      if (isOrganiztionCodeExists.data.length > 0) {
+        return ApiResponseHandler.warning(
+          res,
+          "Organization code already in use",
+         null, 401
+        );
+      }
       const imageList: ParsedFiles = {
         proof: [],
         noc: null,
@@ -228,7 +250,9 @@ export const signup = async (req: Request, res: Response) => {
         );
       }
     } else {
+      
       responseData = await authInstance.userSignup(userData);
+     
       if (responseData.status === false) {
         return ApiResponseHandler.error(
           res,
@@ -237,7 +261,13 @@ export const signup = async (req: Request, res: Response) => {
         );
       }
     }
-
+    console.log(responseData)
+    console.log(responseData.data)
+    
+console.log("NEW DATA:"+
+  responseData.data[0]+
+  userData.role,
+);
     const token: any = await Jwt.generateToken({
       id: responseData.data[0],
       role: userData.role,
@@ -249,8 +279,11 @@ export const signup = async (req: Request, res: Response) => {
         500
       );
     }
+    const accessToken={
+      accessToken:token.data
+    }
 
-    return ApiResponseHandler.success(res, token, "Signup Successful", 200);
+    return ApiResponseHandler.success(res, accessToken, "Signup Successful", 200);
   } catch (error) {
     console.log(error);
     return ApiResponseHandler.error(res, "Internal server error", 501);
@@ -277,7 +310,7 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
     ];
 
     if (!isValidData(userData, requiredFields)) {
-      return ApiResponseHandler.warning(res, "All fields are required", 401);
+      return ApiResponseHandler.warning(res, "All fields are required",null, 401);
     }
     if (!Validators.isValidEmail(userData.email)) {
       return ApiResponseHandler.warning(res, "Enter valid email", 401);
@@ -311,6 +344,7 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
         401
       );
     }
+    console.log(user!.id,)
 
     const isEmailMobileExists =
       await authInstance.isUserExistsOnMobileOrEmailWithoutSpecificId(
@@ -318,6 +352,7 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
         userData.email,
         userData.mobile
       );
+      console.log(isEmailMobileExists.data)
 
     if (isEmailMobileExists.status === false) {
       return ApiResponseHandler.error(
@@ -333,25 +368,89 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
         401
       );
     }
-
-    const proof: any[] = [];
+    ////////////////////////////////////////////////////////////////////////
+    const imageList:any = {
+      proof: [],
+      profile: null,
+    };
 
     if (Array.isArray(req.files)) {
       (req.files as Express.Multer.File[]).forEach((file) => {
-        if (file.fieldname === "proof") {
-          proof.push(file);
+        if (file.fieldname === "noc") {
+          imageList.noc = file;
+        } else if (file.fieldname === "proof") {
+          imageList.proof.push(file);
         }
       });
     } else {
       return ApiResponseHandler.error(res, "Image files not found", 400);
     }
 
-    if (proof.length <= 0) {
+    // if (imageList.noc == null || imageList.proof.length <= 0) {
+    //   return ApiResponseHandler.error(res, "noc or proof missing", 400);
+    // }
+
+    // const nocPdfUploadedResponse: FileStorageResponse =
+    //   await FirebaseStorage.uploadSingleImage(`DOCUMENTS/NOC`, imageList.noc);
+    // if (nocPdfUploadedResponse.status === false) {
+    //   return ApiResponseHandler.error(
+    //     res,
+    //     nocPdfUploadedResponse.message ?? "failed to upload NOC . try again!",
+    //     500
+    //   );
+    // }
+    // const proofImgUploadedResponse: FileStorageResponse =
+    //   await FirebaseStorage.uploadCoverImages(`USERS/PROOF`, imageList.proof);
+    // if (proofImgUploadedResponse.status === false) {
+    //   return ApiResponseHandler.error(
+    //     res,
+    //     "failed to upload proof images. try again later",
+    //     500
+    //   );
+    // }
+
+    // console.log(nocPdfUploadedResponse);
+
+    // userData.proof = JSON.stringify(proofImgUploadedResponse.urls);
+    // userData.collegeNoc = nocPdfUploadedResponse.url;
+    // console.log(userData);
+
+    ///////////////////////////////////////////////////////////////////////
+
+    
+
+    if (Array.isArray(req.files)) {
+      (req.files as Express.Multer.File[]).forEach((file) => {
+        if (file.fieldname === "proof") {
+          imageList.proof.push(file);
+        }
+        else if (file.fieldname === "profile") {
+          imageList.profile=file;
+        }
+      });
+    } else {
+      return ApiResponseHandler.error(res, "Image files not found", 400);
+    }
+
+    if (imageList.proof.length <= 0) {
       return ApiResponseHandler.error(res, " proof missing", 400);
+    }
+    if (imageList.profile == null || imageList.proof.length <= 0) {
+      return ApiResponseHandler.error(res, "noc or proof missing", 400);
+    }
+
+    const profileUploadedResponse: FileStorageResponse =
+      await FirebaseStorage.uploadSingleImage(`USERS/PROFILE`, imageList.profile);
+    if (profileUploadedResponse.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        profileUploadedResponse.message ?? "failed to upload Profile . try again!",
+        500
+      );
     }
 
     const proofImgUploadedResponse: FileStorageResponse =
-      await FirebaseStorage.uploadCoverImages(`USERS/PROOF`, proof);
+      await FirebaseStorage.uploadCoverImages(`USERS/PROOF`, imageList.proof);
     if (proofImgUploadedResponse.status === false) {
       return ApiResponseHandler.error(
         res,
@@ -360,9 +459,9 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
       );
     }
 
-    console.log(proofImgUploadedResponse);
-
     userData.proof = JSON.stringify(proofImgUploadedResponse.urls);
+    userData.profile = profileUploadedResponse.url;
+
 
     const responseData = await authInstance.updateUserIdentity(
       user!.id,
@@ -401,6 +500,31 @@ export const getUserProfile = async (req: Request, res: Response) => {
     //PENDING --> Combine two tables
 
     const userData = await authInstance.getUserProfile(user.role, user.id);
+    console.log(userData);
+    if (userData.data.length <= 0) {
+      return ApiResponseHandler.warning(res, "userData not found", 404);
+    }
+
+    return ApiResponseHandler.success(res, userData.data, "User", 200);
+  } catch (error) {
+    console.log(error);
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+
+export const getUserNameAndLocation = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+    if (!user?.id) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
+    if (!user?.role) {
+      return ApiResponseHandler.warning(res, "User role missing", 400);
+    }
+    //PENDING --> Combine two tables
+
+    const userData = await authInstance.getUserNameAndLocation(user.role, user.id);
     console.log(userData);
     if (userData.data.length <= 0) {
       return ApiResponseHandler.warning(res, "userData not found", 404);
