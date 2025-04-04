@@ -16,14 +16,8 @@ router.post(
 
 
 export default router;
-
-
-
-
 // get organizer details
 
 //router.get("/organizer",AuthenticateUser.verifyToken,AuthenticateUser.isUserFound, AuthModel.);
-
-
 // get organizer details
 //router.get("/organizer",AuthenticateUser.verifyToken,AuthenticateUser.isUserFound, AuthModel.);

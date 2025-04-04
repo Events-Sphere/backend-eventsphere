@@ -8,7 +8,6 @@ import { FirebaseStorage } from "../../Services/Storage";
 import { Jwt } from "../../Utililes/jwt";
 
 const authInstance = new AuthClass();
-
 const isValidData = (data: any, fields: string[]): boolean => {
   return fields.every(
     (field) => typeof data[field] === "string" && data[field].trim() !== ""
@@ -378,7 +377,8 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
       (req.files as Express.Multer.File[]).forEach((file) => {
         if (file.fieldname === "noc") {
           imageList.noc = file;
-        } else if (file.fieldname === "proof") {
+        } else
+         if (file.fieldname === "proof") {
           imageList.proof.push(file);
         }
       });
@@ -630,15 +630,28 @@ export const getUserNameAndLocation = async (req: Request, res: Response) => {
 
 // //ADMIN-->GET-ALL-USER--> http://localhost:3000/
 
-// export const getAllUsers = async (req: Request, res: Response) => {
-//   try {
-//     const users = await authInstance.getAllUsers("user");
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const users = await authInstance.getAllUsers("user");
 
-//     return ApiResponseHandler.success(res, users.data, "Users", 200);
-//   } catch (error) {
-//     return ApiResponseHandler.error(res, "Internal server error", 501);
-//   }
-// };
+    return ApiResponseHandler.success(res, users.data, "Users", 200);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+//ADMIN-->GET-ALL-ORGANIZERS--> http://localhost:3000/
+
+export const getAllOrganizers = async (req: Request, res: Response) => {
+  try {
+    const organizers = await authInstance.getAllUsers("organizer");
+    //PENDING --> Combine two tables
+    return ApiResponseHandler.success(res, organizers.data, "Organizers", 200);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
 
 // //ADMIN-->GET-SINGLE-USER--> http://localhost:3000/
 
@@ -682,17 +695,7 @@ export const getUserNameAndLocation = async (req: Request, res: Response) => {
 //   }
 // };
 
-// //ADMIN-->GET-ALL-ORGANIZERS--> http://localhost:3000/
 
-// export const getAllOrganizers = async (req: Request, res: Response) => {
-//   try {
-//     const organizers = await authInstance.getAllUsers("organizer");
-//     //PENDING --> Combine two tables
-//     return ApiResponseHandler.success(res, organizers.data, "Organizers", 200);
-//   } catch (error) {
-//     return ApiResponseHandler.error(res, "Internal server error", 501);
-//   }
-// };
 
 // //ADMIN-->GET-SINGLE-ORGANIZERS--> http://localhost:3000/
 

@@ -34,8 +34,10 @@ export class BookingsClass {
   async createBooking(bookingData: BookingInterface): Promise<any> {
     try {
       const [newBookingId] = await db("bookings").insert(bookingData, ["_id"]);
-      const newBooking = await db("bookings").where("_id", newBookingId).first();
-      return { status: true, data: newBooking };
+      const newBooking = await db("bookings").where("_id", newBookingId);
+      console.log("newBookingID : " ,newBookingId)
+      console.log("newBooking : " ,newBooking)
+      return { status: true, data: bookingData };
     } catch (error) {
       console.error("Error creating booking:", error);
       return { status: false, message: "Database error." };
@@ -92,7 +94,7 @@ console.log(updated)
   async updateUserBookingsAndEarnings(
     userId: number,
     eventId: number,
-    bookingAmount: number
+    bookingAmount?: number
   ): Promise<any> {
     try {
       

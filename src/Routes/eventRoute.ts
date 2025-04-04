@@ -24,8 +24,6 @@ router.get("/by-category-name",AuthenticateUser.verifyToken, EventModel.getEvent
 router.get("/popular",AuthenticateUser.verifyToken, EventModel.getPopularEvents);
 router.get("/upcoming",AuthenticateUser.verifyToken, EventModel.getUpcomingEvents);
 
-
-
 //<---- Events decisions [aprovel/rejection] routes ------>
 router.post("/status-update" , EventModel.updateEventStatus);
 

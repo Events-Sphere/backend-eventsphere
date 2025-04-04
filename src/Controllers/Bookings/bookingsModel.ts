@@ -62,6 +62,8 @@ console.log("111111")
     if (!bookingResponse.status) {
       return ApiResponseHandler.error(res, COMMON_MESSAGES.BOOKING_FAILED, 500);
     }
+  
+      await bookingInstance.updateUserBookingsAndEarnings(userId, bookingId, 0);
 
     return ApiResponseHandler.success(res, bookingResponse.data, "Booked successfully", 200);
   } catch (error: any) {
