@@ -42,7 +42,7 @@ jspm_packages/
 .env
 
 # Firebase Admin SDK service account key
-*.json
+# *.json
 
 # Firebase-specific files
 firebase-debug.log
