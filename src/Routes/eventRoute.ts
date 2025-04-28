@@ -1,31 +1,33 @@
 import { Router } from "express";
 import * as EventModel from "../Controllers/Event/eventModel";
 import { FileUploadMiddleware } from "../Middleware/fileUploadMiddleware";
-import { AuthenticateUser } from "../Middleware/authenticateUserMiddleware";
+import AuthenticateUser from "../Middleware/authenticateUserMiddleware";
 const router = Router();
-const fileUploadInstance =new FileUploadMiddleware();
+
+const authenticate = new AuthenticateUser();
+const fileUploadInstance = new FileUploadMiddleware();
 // const imageParserInstance = new ImageParser();
 
 //<---- Event router----->
-router.post("/create",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, fileUploadInstance.middleware(), EventModel.createEvent);
-router.post("/update",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, fileUploadInstance.middleware(), EventModel.updateEvent);
+router.post("/create", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, fileUploadInstance.middleware(), EventModel.createEvent);
+router.post("/update", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, fileUploadInstance.middleware(), EventModel.updateEvent);
 
 //<---- Retrieve events------>
-router.get("/pending",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, EventModel.getPendingEventsById);
-router.get("/completed",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, EventModel.getCompletedEventsById);
-router.get("/active",AuthenticateUser.verifyToken,AuthenticateUser.isOrganizerHaveAccess, EventModel.getActiveEventsById);
+router.get("/pending", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, EventModel.getPendingEventsById);
+router.get("/completed", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, EventModel.getCompletedEventsById);
+router.get("/active", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, EventModel.getActiveEventsById);
 
-router.get("/admin/pending",AuthenticateUser.verifyToken,AuthenticateUser.isAdmin, EventModel.getPendingEvents);
-router.get("/admin/completed",AuthenticateUser.verifyToken,AuthenticateUser.isAdmin, EventModel.getCompletedEvents);
-router.get("/admin/active",AuthenticateUser.verifyToken,AuthenticateUser.isAdmin, EventModel.getActiveEvents);
+router.get("/admin/pending", authenticate.verifyToken, authenticate.isAdmin, EventModel.getPendingEvents);
+router.get("/admin/completed", authenticate.verifyToken, authenticate.isAdmin, EventModel.getCompletedEvents);
+router.get("/admin/active", authenticate.verifyToken, authenticate.isAdmin, EventModel.getActiveEvents);
 
-router.post("/search",AuthenticateUser.verifyToken, EventModel.searchEvents);
-router.get("/by-category-name",AuthenticateUser.verifyToken, EventModel.getEventsByCategoryName);
-router.get("/popular",AuthenticateUser.verifyToken, EventModel.getPopularEvents);
-router.get("/upcoming",AuthenticateUser.verifyToken, EventModel.getUpcomingEvents);
+router.post("/search", authenticate.verifyToken, EventModel.searchEvents);
+router.get("/by-category-name", authenticate.verifyToken, EventModel.getEventsByCategoryName);
+router.get("/popular", authenticate.verifyToken, EventModel.getPopularEvents);
+router.get("/upcoming", authenticate.verifyToken, EventModel.getUpcomingEvents);
 
 //<---- Events decisions [aprovel/rejection] routes ------>
-router.post("/status-update" , EventModel.updateEventStatus);
+// router.post("/status-update" , EventModel.updateEventStatus);
 
 
 export default router;

@@ -1,38 +1,40 @@
 import { Router } from "express";
 import * as BookingModel from "../Controllers/Bookings/bookingsModel";
-import { AuthenticateUser } from "../Middleware/authenticateUserMiddleware";
+import AuthenticateUser from "../Middleware/authenticateUserMiddleware";
 
 const router = Router();
 
+const authenticate = new AuthenticateUser();
+
 router.post(
   "/bookings",
-  AuthenticateUser.verifyToken,
-  AuthenticateUser.isUserHaveAccess,
+  authenticate.verifyToken,
+  authenticate.isUserHaveAccess,
   BookingModel.createBooking
 );
-router.post(
-  "/bookings/confirm",
-  AuthenticateUser.verifyToken,
-  AuthenticateUser.isUserHaveAccess,
-  BookingModel.confirmBooking
-);
+// router.post(
+//   "/bookings/confirm",
+//   authenticate.verifyToken,
+//   authenticate.isUserHaveAccess,
+//   BookingModel.confirmBooking
+// );
 
 router.get(
   "/bookings/pending",
-  AuthenticateUser.verifyToken,
-  AuthenticateUser.isUserHaveAccess,
+  authenticate.verifyToken,
+  authenticate.isUserHaveAccess,
   BookingModel.getUserPendingBookings
 );
 router.get(
   "/bookings/confirmed",
-  AuthenticateUser.verifyToken,
-  AuthenticateUser.isUserHaveAccess,
+  authenticate.verifyToken,
+  authenticate.isUserHaveAccess,
   BookingModel.getUserBookedEvents
 );
 router.get(
   "/bookings/canceled",
-  AuthenticateUser.verifyToken,
-  AuthenticateUser.isUserHaveAccess,
+  authenticate.verifyToken,
+  authenticate.isUserHaveAccess,
   BookingModel.getUserCancelledBookings
 );
 

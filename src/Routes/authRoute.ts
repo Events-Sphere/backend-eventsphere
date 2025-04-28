@@ -1,7 +1,6 @@
 import { Router } from "express";
 import * as AuthModel from "../Controllers/Auth/authModel";
 import { FileUploadMiddleware } from "../Middleware/fileUploadMiddleware";
-import { AuthenticateUser } from "../Middleware/authenticateUserMiddleware";
 const fileUploadInstance = new FileUploadMiddleware();
 
 const router = Router();

@@ -1,21 +1,18 @@
 import { Router } from "express";
-import authRouter from "../Routes/authRoute"
-import eventRouter from "../Routes/eventRoute";
-import categoryRouter from "../Routes/catogoriesRoute";
-import userRouter from "../Routes/userRouter";
-import adminRouter from "../Routes/adminRoutes";
-
+import authRouter from "../routes/authRoute"
+import eventRouter from "../routes/eventRoute";
+import categoryRouter from "../routes/catogoriesRoute";
+import userRouter from "../routes/userRouter";
+import adminRouter from "../routes/adminRoutes";
+import squardRouter from "../routes/squardRoutes"
+import organizerRouter from "../routes/organizerRoutes"
 const router = Router();
 
 
 router.use("/user", userRouter);   
-router.use("/admin", adminRouter);   
-
-
-
-
-
-
+router.use("/admin", adminRouter);  
+router.use("/squad",squardRouter) 
+router.use("/organizer", organizerRouter);
 
 
 router.use("/auth", authRouter);           

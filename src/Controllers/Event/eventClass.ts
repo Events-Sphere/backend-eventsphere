@@ -107,6 +107,7 @@ export class EventClass {
         .select("*")
         .where("_id", "=", eventId)
         .first();
+        // console.log(mainEvent)
 
       return mainEvent ? { status: true, data: mainEvent } : { status: false };
     } catch (error) {
@@ -157,14 +158,10 @@ export class EventClass {
       if (orgId) {
         query.andWhere("org_id", orgId);
       }
-
       const events = await query;
-    
-
       if (!events || events.length === 0) {
         return { status: true, data: [] };
       }
-
       const eventsWithSubEvents = await Promise.all(
         events.map(async (event: any) => {
           const subEventIds = JSON.parse(event.sub_event_items || "[]");
@@ -175,14 +172,23 @@ export class EventClass {
                 .where("event_id", event._id)
             : [];
 
-          const subEventsWithImages = subEvents.map((subEvent: any) => ({
+          const subEventsWithImages = subEvents.map((subEvent: any) =>
+            
+            (
+            
+            {
             ...subEvent,
+            
+           restrictions : subEvent.restrictions != undefined ? JSON.parse(subEvent.restrictions) : "[]",
             cover_images: JSON.parse(subEvent.cover_images || "[]"),
           }));
 
-          const  parsedEventData = {...event, cover_images:JSON.parse(event.cover_images), tags : JSON.parse(event.tags)};
-          // restrictions : JSON.parse(event.restrictions)
-          return { ...parsedEventData, sub_events: subEventsWithImages };
+          const  parsedEventData = {...event, 
+            cover_images:JSON.parse(event.cover_images),
+             tags : JSON.parse(event.tags),
+             };
+          
+          return { ...parsedEventData, sub_events: {...subEventsWithImages} };
         })
       );
       
@@ -571,6 +577,7 @@ console.log("VEVET",eventsWithSubEvents[0].eventData.sub_event_items);
         })
       })
 
+    console.log(eventsWithSubEvents[0].eventData);
       return {
         status: true,
         data: eventsWithSubEvents,
@@ -586,11 +593,13 @@ console.log("VEVET",eventsWithSubEvents[0].eventData.sub_event_items);
     approveIds,
     rejectIds,
     reasons,
+    orgId
   }: {
     eventId: number;
     approveIds: number[];
     rejectIds: number[];
     reasons: string[];
+    orgId:number
   }): Promise<any> => {
     try {
       if (approveIds?.length > 0) {
@@ -610,45 +619,47 @@ console.log("VEVET",eventsWithSubEvents[0].eventData.sub_event_items);
       }
 
       const result = await db("subevents")
-        .select("org_id")
-        .count("_id as count")
-        .where("event_id", eventId)
-        .first();
+        .select("*")
+        // .count("_id as count")
+        .where("event_id", eventId).andWhere("status","available");
+      console.log("status count"+result.length)
 
       const totalProcessed = approveIds.length + rejectIds.length;
-
-      if (result?.count === totalProcessed) {
+       
+      if (result?.length === totalProcessed) {
         await db("events")
           .where("_id", eventId)
           .update({ status: 1, active_status: "active" });
-
+console.log("orgid"+orgId)
         const organizerEventStatus = await db("organizations")
+          .select("*")
           .select("pending_events", "active_events")
-          .where("_id", result?.org_id)
+          .where("_id", orgId)
           .first();
-
+       console.log(organizerEventStatus)
         if (organizerEventStatus) {
           const { pending_events, active_events } = organizerEventStatus;
 
-          const updatedPendingEvents = (pending_events || []).filter(
+          const updatedPendingEvents = (JSON.parse(pending_events) || []).filter(
             (eventID: number) => eventID !== eventId
           );
+         const updatedActiveEvent=JSON.parse(active_events)
 
-          if (!active_events?.includes(eventId)) {
-            active_events.push(eventId);
+          if (!updatedActiveEvent?.includes(eventId)) {
+            updatedActiveEvent.push(eventId);
           }
 
           await db("organizations")
-            .where("_id", result?.org_id)
+            .where("_id", orgId)
             .update({
               pending_events: JSON.stringify(updatedPendingEvents),
-              active_events: JSON.stringify(active_events),
+              active_events: JSON.stringify(updatedActiveEvent),
             });
         }
         return { status: true };
       }
-
-      return { status: false };
+      return { status: true };
+      // return { status: false };
     } catch (error) {
       console.error("Error updating event status:", error);
       return {

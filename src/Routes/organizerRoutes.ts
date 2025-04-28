@@ -1,21 +1,24 @@
 import { Router } from "express";
-import * as AuthModel from "../Controllers/Auth/authModel";
 import { FileUploadMiddleware } from "../Middleware/fileUploadMiddleware";
-import { AuthenticateUser } from "../Middleware/authenticateUserMiddleware";
-const fileUploadInstance = new FileUploadMiddleware();
-import * as CategoryModel from "../Controllers/Category/categoryModel";
+import  AuthenticateUser  from "../Middleware/authenticateUserMiddleware";
+import EventModel from "../models/eventModel";
+import UserModel from "../models/userModel";
 
 const router = Router();
 
+const event = new EventModel();
+const user = new UserModel();
+const authenticate = new AuthenticateUser();
+const fileUploadInstance = new FileUploadMiddleware();
 
-router.post(
-  "/event/category/create",
-  AuthenticateUser.verifyToken,
-  AuthenticateUser.isAdmin,
-  fileUploadInstance.middleware(),
-  CategoryModel.createCategory
-);
+router.get("/profile", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, user.getUserProfileByRoleAndId)
 
+router.post("/event/create", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, fileUploadInstance.middleware(), event.createEvent);
+
+router.get("/events/active", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, event.getAllActiveEventsByOrganizerId)
+router.get("/events/pending", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, event.getAllPendingEventsByOrganizerId)
+router.get("/events/rejected", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, event.getAllRejectedEventsByOrganizerId)
+router.get("/events/completed", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, event.getAllCompletedEventsByOrganizerId)
 
 export default router;
 

@@ -7,6 +7,7 @@ import {
 } from "../../Interfaces/userInterface";
 import db from "../../Config/knex";
 import { FormatDateAndTime } from "../../Utililes/formatDateAndTime";
+import { tableName } from "../../tables/table";
 
 export class AuthClass {
   isUserExistsOnMobileOrEmail = async (
@@ -104,6 +105,7 @@ export class AuthClass {
   ): Promise<{ status: boolean; data?: any }> => {
     return new Promise(async (resolve, reject) => {
       try {
+        const currentTime = FormatDateAndTime.getCurrentTimestamp();
         const results: any = await db("users").where({ _id: id }).update({
           name: userData.name,
           email: userData.email,
@@ -113,7 +115,10 @@ export class AuthClass {
           password: userData.password,
           location: userData.location,
           proof: userData.proof,
-          profile: userData.profile
+          profile: userData.profile,
+          status:"pending",
+          requestedAt:currentTime
+          
         });
         resolve({ status: true, data: results });
       } catch (e) {
@@ -132,6 +137,26 @@ export class AuthClass {
         const results: any = await db
           .select("*")
           .from("users")
+          .where("email", userData.email);
+
+        resolve({ status: true, data: results });
+      } catch (e) {
+        reject({
+          status: false,
+        });
+      }
+    });
+  };
+
+  adminLogin = async (
+    userData: UserLoginInterface
+  ): Promise<{ status: boolean; data?: any }> => {
+    return new Promise(async (resolve, reject) => {
+      
+      try {
+        const results: any = await db
+          .select("*")
+          .from(tableName.ADMIN)
           .where("email", userData.email);
 
         resolve({ status: true, data: results });
@@ -182,7 +207,8 @@ export class AuthClass {
           location: userData.location,
           longitude: parseFloat(userData.longitude),
           latitude: parseFloat(userData.latitude),
-          proof: userData.proof
+          proof: userData.proof,
+          status:"pending"
         });
 
         await db("organizations").insert({

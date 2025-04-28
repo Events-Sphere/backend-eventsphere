@@ -646,13 +646,13 @@ console.log(categoryName)
 
 export const getPendingEvents = async (req: Request, res: Response) => {
   try {
-    if (!req.user || !req.user.id) {
-      return ApiResponseHandler.error(
-        res,
-        COMMON_MESSAGES.AUTHENTICATION_FAILED,
-        401
-      );
-    }
+    // if (!req.user || !req.user.id) {
+    //   return ApiResponseHandler.error(
+    //     res,
+    //     COMMON_MESSAGES.AUTHENTICATION_FAILED,
+    //     401
+    //   );
+    // }
 
     const response = await eventInstance.getAllPendingEventList();
 
@@ -869,7 +869,7 @@ export const searchEvents = async (req: Request, res: Response) => {
 //   }
 // };
 
-export const updateEventStatus = async (req: Request, res: Response) => {
+export const approveEvent = async (req: Request, res: Response) => {
   try {
     const { data } = req.body;
 
@@ -896,19 +896,23 @@ export const updateEventStatus = async (req: Request, res: Response) => {
     const requestRejectEventReasons: string[] = Object.values(
       data.rejectEvents || {}
     ).map(String);
-
+  //console.log(requestApproveEventIds+":"+requestRejectEventIds+":"+requestRejectEventReasons)
     const totalIds =
       requestApproveEventIds.length + requestRejectEventIds.length;
+console.log(eventResponse.data.org_id)
+const orgId=eventResponse.data.org_id;
 
-    if (eventResponse.data.sub_event_items.length !== totalIds) {
+// console.log(totalIds)
+    if (JSON.parse(eventResponse.data.sub_event_items).length != totalIds) {
       return ApiResponseHandler.error(res, COMMON_MESSAGES.MISMATCHED_IDS, 400);
     }
-
+  console.log("reached!")
     const response = await eventInstance.updateEventStatus({
       eventId,
       approveIds: requestApproveEventIds,
       rejectIds: requestRejectEventIds,
       reasons: requestRejectEventReasons,
+      orgId:orgId
     });
 
     if (!response.status) {

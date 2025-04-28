@@ -1,11 +1,12 @@
 import express, { Application , Request, Router } from "express";
 import * as dotenv from "dotenv";
 import cors from "cors";
-import V1 from "./V1/V1";
+import V1 from "./v1/v1";
 import path from "path";
 import { ApiResponseHandler } from "./Middleware/apiResponseMiddleware";
 import { connectToDatabase } from "./Config/knex";
-import AuthRouter from './Routes/authRoute';
+import AuthRouter from './routes/authRoute';
+import errorHandler from "./Utililes/errorHandler";
 
 dotenv.config();
 
@@ -42,8 +43,11 @@ app.use("/api/v1" , V1);
 app.all("*", (req, res, next) => {
   ApiResponseHandler.notFound(res, `URL ${req.path} not found` , 404);
 });
+app.use(errorHandler);
+
 
 connectToDatabase();
+
 app.listen(PORT, () => {
   const serverInfo = `\n------------------------------------------\n` +
   `🚀 Server is up and running!\n` +
@@ -52,3 +56,4 @@ app.listen(PORT, () => {
   `------------------------------------------\n`;
 console.log(serverInfo);
 });
+

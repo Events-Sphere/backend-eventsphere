@@ -90,6 +90,67 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+export const adminLogin = async (req: Request, res: Response) => {
+  try {
+    const userData = req.body;
+    if (!isValidData(userData, ["email", "password"])) {
+      return ApiResponseHandler.warning(res, "All fields are required", null,401);
+    }
+
+    if (!Validators.isValidEmail(userData.email)) {
+      return ApiResponseHandler.warning(res, "Enter valid email", null,401);
+    }
+
+    const isUserExists: any = await authInstance.adminLogin(userData);
+    if (isUserExists.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+
+    if (isUserExists.data.length <= 0) {
+      return ApiResponseHandler.warning(
+        res,
+        "No user found with provided credentials",
+        null,401
+      );
+    }
+
+    const isPasswordCorrect = await PasswordEncryption.comparePassword(
+      userData.password,
+      isUserExists.data[0].password
+    );
+
+    if (!isPasswordCorrect) {
+      return ApiResponseHandler.warning(
+        res,
+        "Password does not match with your credentials",null,
+        401
+      );
+    }
+
+    const token: any = await Jwt.generateToken({
+      id: isUserExists.data[0]._id,
+      role: isUserExists.data[0].role,
+    });
+    if (token.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+
+    const accessToken={
+      accessToken:token.data
+    }
+    return ApiResponseHandler.success(res, accessToken, "Login Successful", 200);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 //SIGNUP ENDPOINT--> http://localhost:3000/auth/signup
 //               --> http://localhost:3000/auth/organizer/signup
 
@@ -673,31 +734,31 @@ export const getAllOrganizers = async (req: Request, res: Response) => {
 //   }
 // };
 
-// //ADMIN-->DELETE-USER--> http://localhost:3000/
+//ADMIN-->DELETE-USER--> http://localhost:3000/
 
-// export const deleteSingleUser = async (req: Request, res: Response) => {
-//   try {
-//     // PENDING WORK --> delete user profile in firebase
-//     const id = req.body.id;
-//     if (!id) {
-//       return ApiResponseHandler.warning(res, "User id missing", 400);
-//     }
+export const deleteSingleUser = async (req: Request, res: Response) => {
+  try {
+    // PENDING WORK --> delete user profile in firebase
+    const id = req.body.id;
+    if (!id) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
 
-//     const deleteUser = await authInstance.deleteUser("user", id);
+    const deleteUser = await authInstance.deleteUser("user", id);
 
-//     if (deleteUser.data > 0) {
-//       return ApiResponseHandler.success(res, null, "User deleted", 200);
-//     } else {
-//       return ApiResponseHandler.warning(res, "user not found", 404);
-//     }
-//   } catch (error) {
-//     return ApiResponseHandler.error(res, "Internal server error", 501);
-//   }
-// };
+    if (deleteUser.data > 0) {
+      return ApiResponseHandler.success(res, null, "User deleted", 200);
+    } else {
+      return ApiResponseHandler.warning(res, "user not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 
 
 
-// //ADMIN-->GET-SINGLE-ORGANIZERS--> http://localhost:3000/
+//ADMIN-->GET-SINGLE-ORGANIZERS--> http://localhost:3000/
 
 // export const getSingleOrganizer = async (req: Request, res: Response) => {
 //   try {
@@ -718,42 +779,42 @@ export const getAllOrganizers = async (req: Request, res: Response) => {
 //   }
 // };
 
-// //ADMIN-->DELETE-SINGLE-ORGANIZERS--> http://localhost:3000/
+//ADMIN-->DELETE-SINGLE-ORGANIZERS--> http://localhost:3000/
 
-// export const deleteSingleOrganizer = async (req: Request, res: Response) => {
-//   try {
-//     // PENDING WORK --> delete organizer profile in firebase
-//     const id = req.body.id;
-//     if (!id) {
-//       return ApiResponseHandler.warning(res, "User id missing", 400);
-//     }
-//     //PENDING --> Combine two tables
+export const deleteSingleOrganizer = async (req: Request, res: Response) => {
+  try {
+    // PENDING WORK --> delete organizer profile in firebase
+    const id = req.body.id;
+    if (!id) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
+    //PENDING --> Combine two tables
 
-//     const Organiser = await authInstance.deleteUser("organizer", id);
+    const Organiser = await authInstance.deleteUser("organizer", id);
 
-//     if (Organiser.data > 0) {
-//       return ApiResponseHandler.success(res, null, "Orgnaizer deleted", 200);
-//     } else {
-//       return ApiResponseHandler.warning(res, "Orgnaizer not found", 404);
-//     }
-//   } catch (error) {
-//     return ApiResponseHandler.error(res, "Internal server error", 501);
-//   }
-// };
+    if (Organiser.data > 0) {
+      return ApiResponseHandler.success(res, null, "Orgnaizer deleted", 200);
+    } else {
+      return ApiResponseHandler.warning(res, "Orgnaizer not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 
-// //ADMIN-->GET-ALL-SQUARDS--> http://localhost:3000/
+//ADMIN-->GET-ALL-SQUARDS--> http://localhost:3000/
 
-// export const getAllSquards = async (req: Request, res: Response) => {
-//   try {
-//     const squards = await authInstance.getAllUsers("squard");
+export const getAllSquards = async (req: Request, res: Response) => {
+  try {
+    const squards = await authInstance.getAllUsers("squard");
 
-//     return ApiResponseHandler.success(res, squards.data, "Squards", 200);
-//   } catch (error) {
-//     return ApiResponseHandler.error(res, "Internal server error", 501);
-//   }
-// };
+    return ApiResponseHandler.success(res, squards.data, "Squards", 200);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 
-// //ADMIN-->GET-SINGLE-SQUARDS--> http://localhost:3000/
+//ADMIN-->GET-SINGLE-SQUARDS--> http://localhost:3000/
 
 // export const getSingleSquards = async (req: Request, res: Response) => {
 //   try {
@@ -773,173 +834,173 @@ export const getAllOrganizers = async (req: Request, res: Response) => {
 //   }
 // };
 
-// //ADMIN-->DELETE-SINGLE-SQUARDS--> http://localhost:3000/
+//ADMIN-->DELETE-SINGLE-SQUARDS--> http://localhost:3000/
 
-// export const deleteSingleSquard = async (req: Request, res: Response) => {
-//   try {
-//     // PENDING WORK --> delete user profile in firebase
+export const deleteSingleSquard = async (req: Request, res: Response) => {
+  try {
+    // PENDING WORK --> delete user profile in firebase
 
-//     const id = req.body.id;
-//     if (!id) {
-//       return ApiResponseHandler.warning(res, "Squard id missing", 400);
-//     }
+    const id = req.body.id;
+    if (!id) {
+      return ApiResponseHandler.warning(res, "Squard id missing", 400);
+    }
 
-//     const squard = await authInstance.deleteUser("squard", id);
+    const squard = await authInstance.deleteUser("squard", id);
 
-//     if (squard.data > 0) {
-//       return ApiResponseHandler.success(res, null, "Squard deleted", 200);
-//     } else {
-//       return ApiResponseHandler.warning(res, "Squard not found", 404);
-//     }
-//   } catch (error) {
-//     return ApiResponseHandler.error(res, "Internal server error", 501);
-//   }
-// };
+    if (squard.data > 0) {
+      return ApiResponseHandler.success(res, null, "Squard deleted", 200);
+    } else {
+      return ApiResponseHandler.warning(res, "Squard not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 
-// //ADMIN-->APPROVE-ORGANIZER--> http://localhost:3000/
-// //ADMIN-->APPROVE-USER--> http://localhost:3000/
+//ADMIN-->APPROVE-ORGANIZER--> http://localhost:3000/
+//ADMIN-->APPROVE-USER--> http://localhost:3000/
 
-// export const approveUser = (req: Request, res: Response) => {
-//   try {
-//     const approvedBy = req.user!.id;
-//     if (!approvedBy) {
-//       return ApiResponseHandler.warning(res, "Approver id missing", 400);
-//     }
+export const approveUser = (req: Request, res: Response) => {
+  try {
+    const approvedBy = req.user!.id;
+    if (!approvedBy) {
+      return ApiResponseHandler.warning(res, "Approver id missing", 400);
+    }
 
-//     const userId = req.body.id;
-//     if (!userId) {
-//       return ApiResponseHandler.warning(res, "User id missing", 400);
-//     }
-//     const user: any = authInstance.updateUserStatus(
-//       "approve",
-//       userId,
-//       approvedBy
-//     );
-//     if (user > 0) {
-//       return ApiResponseHandler.success(res, null, "User approved", 200);
-//     } else {
-//       return ApiResponseHandler.warning(res, "User not found", 404);
-//     }
-//   } catch (error) {
-//     return ApiResponseHandler.error(res, "Internal server error", 501);
-//   }
-// };
+    const userId = req.body.id;
+    if (!userId) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
+    const user: any = authInstance.updateUserStatus(
+      "approve",
+      userId,
+      approvedBy
+    );
+    if (user > 0) {
+      return ApiResponseHandler.success(res, null, "User approved", 200);
+    } else {
+      return ApiResponseHandler.warning(res, "User not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 
-// //ADMIN-->REJECT-ORGANIZER--> http://localhost:3000/
-// //ADMIN-->REJECT-USER--> http://localhost:3000/
+//ADMIN-->REJECT-ORGANIZER--> http://localhost:3000/
+//ADMIN-->REJECT-USER--> http://localhost:3000/
 
-// export const rejectUser = (req: Request, res: Response) => {
-//   try {
-//     const approvedBy = req.user!.id;
-//     if (!approvedBy) {
-//       return ApiResponseHandler.warning(res, "Approver id missing", 400);
-//     }
+export const rejectUser = (req: Request, res: Response) => {
+  try {
+    const approvedBy = req.user!.id;
+    if (!approvedBy) {
+      return ApiResponseHandler.warning(res, "Approver id missing", 400);
+    }
 
-//     const userId = req.body.id;
-//     const denialReason = req.body.denialReason;
-//     if (!userId) {
-//       return ApiResponseHandler.warning(res, "User id missing", 400);
-//     }
-//     const user: any = authInstance.updateUserStatus(
-//       "reject",
-//       userId,
-//       approvedBy,
-//       denialReason
-//     );
-//     if (user > 0) {
-//       return ApiResponseHandler.success(res, null, "User rejected", 200);
-//     } else {
-//       return ApiResponseHandler.warning(res, "User not found", 404);
-//     }
-//   } catch (error) {
-//     return ApiResponseHandler.error(res, "Internal server error", 501);
-//   }
-// };
+    const userId = req.body.id;
+    const denialReason = req.body.denialReason;
+    if (!userId) {
+      return ApiResponseHandler.warning(res, "User id missing", 400);
+    }
+    const user: any = authInstance.updateUserStatus(
+      "reject",
+      userId,
+      approvedBy,
+      denialReason
+    );
+    if (user > 0) {
+      return ApiResponseHandler.success(res, null, "User rejected", 200);
+    } else {
+      return ApiResponseHandler.warning(res, "User not found", 404);
+    }
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 
-// //ADMIN-->ADD-INTERNAL-TEAM--> http://localhost:3000/
+//ADMIN-->ADD-INTERNAL-TEAM--> http://localhost:3000/
 
-// export const createSquard = async (req: Request, res: Response) => {
-//   try {
-//     //PENDING-->  upload profile pic in firestore
-//     const approvedBy = req.user!.id;
-//     if (!approvedBy) {
-//       return ApiResponseHandler.warning(res, "Approver id missing", 400);
-//     }
+export const createSquard = async (req: Request, res: Response) => {
+  try {
+    //PENDING-->  upload profile pic in firestore
+    const approvedBy = req.user!.id;
+    if (!approvedBy) {
+      return ApiResponseHandler.warning(res, "Approver id missing", 400);
+    }
 
-//     const squardData = req.body;
+    const squardData = req.body;
 
-//     const requiredFields = [
-//       "name",
-//       "email",
-//       "password",
-//       "c_code",
-//       "mobile",
-//       "profile",
-//       "role",
-//       "location",
-//       "status",
-//     ];
+    const requiredFields = [
+      "name",
+      "email",
+      "password",
+      "c_code",
+      "mobile",
+      "profile",
+      "role",
+      "location",
+      "status",
+    ];
 
-//     if (!isValidData(squardData, requiredFields)) {
-//       return ApiResponseHandler.warning(res, "All fields are required", 401);
-//     }
+    if (!isValidData(squardData, requiredFields)) {
+      return ApiResponseHandler.warning(res, "All fields are required", 401);
+    }
 
-//     if (!Validators.isValidEmail(squardData.email)) {
-//       return ApiResponseHandler.warning(res, "Enter valid email", 401);
-//     }
+    if (!Validators.isValidEmail(squardData.email)) {
+      return ApiResponseHandler.warning(res, "Enter valid email", 401);
+    }
 
-//     if (!Validators.isValidMobile(squardData.mobile)) {
-//       return ApiResponseHandler.warning(res, "Enter valid mobile", 401);
-//     }
+    if (!Validators.isValidMobile(squardData.mobile)) {
+      return ApiResponseHandler.warning(res, "Enter valid mobile", 401);
+    }
 
-//     if (!Validators.isValidPassword(squardData.password)) {
-//       return ApiResponseHandler.warning(
-//         res,
-//         "Password must be at least 8 characters long, with at least one uppercase letter, one lowercase letter, one number, and one special character (e.g., !@#$%^&*())",
-//         401
-//       );
-//     }
+    if (!Validators.isValidPassword(squardData.password)) {
+      return ApiResponseHandler.warning(
+        res,
+        "Password must be at least 8 characters long, with at least one uppercase letter, one lowercase letter, one number, and one special character (e.g., !@#$%^&*())",
+        401
+      );
+    }
 
-//     const isSquardExists: any = await authInstance.isUserExistsOnMobileOrEmail(
-//       squardData.email,
-//       squardData.mobile
-//     );
-//     if (isSquardExists.status === false) {
-//       return ApiResponseHandler.error(
-//         res,
-//         "Something went wrong. Try again!",
-//         500
-//       );
-//     }
-//     if (isSquardExists.data.length > 0) {
-//       return ApiResponseHandler.warning(
-//         res,
-//         "Email or Mobile already in use",
-//         401
-//       );
-//     }
+    const isSquardExists: any = await authInstance.isUserExistsOnMobileOrEmail(
+      squardData.email,
+      squardData.mobile
+    );
+    if (isSquardExists.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
+    if (isSquardExists.data.length > 0) {
+      return ApiResponseHandler.warning(
+        res,
+        "Email or Mobile already in use",
+        401
+      );
+    }
 
-//     const hashedPassword = await PasswordEncryption.hashPassword(
-//       squardData.password
-//     );
-//     squardData.password = hashedPassword;
+    const hashedPassword = await PasswordEncryption.hashPassword(
+      squardData.password
+    );
+    squardData.password = hashedPassword;
 
-//     const squard = await authInstance.createSquard(squardData);
-//     if (squard.status === false) {
-//       return ApiResponseHandler.error(
-//         res,
-//         "Something went wrong. Try again!",
-//         500
-//       );
-//     }
+    const squard = await authInstance.createSquard(squardData);
+    if (squard.status === false) {
+      return ApiResponseHandler.error(
+        res,
+        "Something went wrong. Try again!",
+        500
+      );
+    }
 
-//     return ApiResponseHandler.success(res, null, "Squard created", 201);
-//   } catch (error) {
-//     return ApiResponseHandler.error(res, "Internal server error", 501);
-//   }
-// };
+    return ApiResponseHandler.success(res, null, "Squard created", 201);
+  } catch (error) {
+    return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
 
-// //ADMIN-->UPDATE-INTERNAL-TEAM--> http://localhost:3000/
+//ADMIN-->UPDATE-INTERNAL-TEAM--> http://localhost:3000/
 
 // export const updateSquard = async (req: Request, res: Response) => {
 //   try {

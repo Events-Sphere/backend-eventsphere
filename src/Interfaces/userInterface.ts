@@ -51,5 +51,6 @@ export interface SquardInterface {
   proof:string[];
   profile:string;
   status:string;
+  approvedBy:number
 }
 
