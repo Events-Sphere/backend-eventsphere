@@ -1,12 +1,12 @@
 import admin from "firebase-admin";
-import serviceAccount from "../../stuhub-36067-firebase-adminsdk-xor75-e02a643b9e.json";
+import serviceAccount from "../Services/stuhub-36067-firebase-adminsdk-xor75-9c53987dfb.json"
 import * as dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
 
 dotenv.config();
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+ credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
   storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
 });
 
@@ -31,6 +31,7 @@ export class FirebaseStorage {
 
       const [url] = await firebaseFile.getSignedUrl({
         action: "read",
+        
         expires: "03-09-2030",
       });
 
