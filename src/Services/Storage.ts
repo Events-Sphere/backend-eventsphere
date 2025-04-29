@@ -1,5 +1,5 @@
 import admin from "firebase-admin";
-import serviceAccount from "../Services/stuhub-36067-firebase-adminsdk-xor75-9c53987dfb.json"
+import serviceAccount from "../Config/firebase-config"
 import * as dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
 
