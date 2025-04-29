@@ -235,9 +235,9 @@ export class UserClass {
               organization.pending_events = JSON.parse(organization.pending_events);
               organization.active_events = JSON.parse(organization.active_events);
               organization.completed_events = JSON.parse(organization.completed_events);
-            
+            const{requestedAt,denial_reason,...remaining}=this.sanitiseAndFormatUser(user)
               return {
-                ...this.sanitiseAndFormatUser(user),
+                ...remaining,
                 organizationData: organization
               }
             }

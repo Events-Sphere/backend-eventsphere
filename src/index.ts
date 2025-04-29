@@ -56,4 +56,3 @@ app.listen(PORT, () => {
   `------------------------------------------\n`;
 console.log(serverInfo);
 });
-

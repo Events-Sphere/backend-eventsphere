@@ -307,11 +307,11 @@ class EventModel {
         mainEvents,
         subEventsData
       );
-      console.log("main ebvent ID :" + response.eventId._id)
+      console.log("main ebvent ID :" + response.eventId)
       const updateOrganizerEventCount =
         await event.updateOrganizationPendingEvent(
           mainEvents.org_id,
-          response.eventId._id
+          response.eventId
         );
       // if (!updateOrganizerEventCount.status) {
       //   console.log(
