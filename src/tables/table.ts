@@ -8,9 +8,13 @@ const NODE_ENV = process.env.NODE_ENV || 'DEV';
 export const tableName = NODE_ENV == 'DEV' ?
 {
     ADMIN: "admins",
-    CATEGORY:"categories"
+    CATEGORY:"categories",
+    USERS:"users",
+    EVENTBOOKINGS:"bookings"
 } :
 {
     ADMIN: "es_admins",
-    CATEGORY:"es_event_categories"
+    CATEGORY:"es_event_categories",
+    USERS:"es_users",
+    EVENTBOOKINGS:"es_event_bookings"
 }

@@ -9,7 +9,7 @@ export class UserClass {
 
   private fetchUsersByRole = async (role: string, status: string, limit: number,offset:number,search:string) => {
 
-    const query = db("users").where({role:role});
+    const query = db(tableName.USERS).where({role:role});
 
     
 
@@ -42,7 +42,7 @@ export class UserClass {
       'proof',
       'longitude',
       'latitude',
-      'status').from("users").offset(offset).limit(limit);
+      'status').offset(offset).limit(limit);
     return {
       totalRecords:Number(count),
       totalPage:Math.ceil(Number(count)/limit),
@@ -71,7 +71,7 @@ export class UserClass {
       'proof',
       'longitude',
       'latitude',
-      'status').from("users").where({ role: role }).andWhere({ status: status });
+      'status').from(tableName.USERS).where({ role: role }).andWhere({ status: status });
   };
 
   private fetchUsersByRoleAndId = async (role: String, id: number) => {
@@ -88,7 +88,7 @@ export class UserClass {
       'proof',
       'longitude',
       'latitude',
-      'status').from("users").where({ _id: id }).andWhere({ role: role });
+      'status').from(tableName.USERS).where({ _id: id }).andWhere({ role: role });
   };
 
   private sanitiseAndFormatUser = (user: any) => {
@@ -110,7 +110,7 @@ export class UserClass {
   ) => {
     const data: any = await db
       .select("*")
-      .from("users")
+      .from(tableName.USERS)
       .where("_id", id);
     return data;
   };
@@ -121,7 +121,7 @@ export class UserClass {
   ) => {
     const results: any = await db
       .select("*")
-      .from("users")
+      .from(tableName.USERS)
       .where("email", email)
       .orWhere("mobile", mobile);
     return results;
@@ -142,7 +142,7 @@ export class UserClass {
         
        const userData = await Promise.all(
           userResponse.users.map(async (user: any) => {
-            const bookings = await db("bookings").
+            const bookings = await db(tableName.EVENTBOOKINGS).
               select("*").whereIn("_id", user.bookings == null ? [] : JSON.parse(user.bookings));
             bookings.forEach((booking: any) => {
               delete booking.user_id;
