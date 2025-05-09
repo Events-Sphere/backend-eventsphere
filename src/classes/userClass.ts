@@ -137,9 +137,7 @@ export class UserClass {
     let data: any = {};
     switch (role) {
       case "user":
-        const userResponse: any = await this.fetchUsersByRole(role, status,limit,offset,search);
-
-        
+        const userResponse: any = await this.fetchUsersByRole(role, status,limit,offset,search); 
        const userData = await Promise.all(
           userResponse.users.map(async (user: any) => {
             const bookings = await db(tableName.EVENTBOOKINGS).
@@ -166,7 +164,7 @@ export class UserClass {
         console.log(organizerResponse.users)
        const organizerData = await Promise.all(
           organizerResponse.users.map(async (user: any) => {
-            const organization = await db("organizations").
+            const organization = await db(tableName.ORGANIZATIONS).
               select("*").where("_id", user._id);
             organization.forEach((user: any) => {
               delete user._id;
@@ -344,7 +342,7 @@ export class UserClass {
     userData: SquardInterface
   ) => {
     const currentTime = FormatDateAndTime.getCurrentTimestamp();
-    const results = await db("users").insert({
+    const results = await db(tableName.USERS).insert({
       name: userData.name,
       email: userData.email,
       mobile: userData.mobile,

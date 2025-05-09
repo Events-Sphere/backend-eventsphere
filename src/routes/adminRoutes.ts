@@ -48,7 +48,7 @@ router.post("/event/approve-reject", authenticate.verifyToken, authenticate.isAd
 
 
 router.post("/category/create", authenticate.verifyToken, authenticate.isAdmin, fileUploadInstance.middleware(), category.createCategory);
-router.get("/categories",authenticate.verifyToken,authenticate.isAdmin,category.getAllCategories);
+router.post("/categories",authenticate.verifyToken,authenticate.isAdmin,category.getAllCategories);
 router.post(
   "/category/delete",
   authenticate.verifyToken,
