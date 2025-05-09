@@ -29,8 +29,7 @@ class EventCategoryClass {
         
         const categories = await query.select("*").offset(offset).limit(limit)
 
-        return {categories,totalPage:Math.ceil(Number(count)/limit),totalRecords:Number(count)
-        };
+        return {categories,totalPage:Math.ceil(Number(count)/limit),totalRecords:Number(count)};
     }
 
     updateCategory = async (categoryUpdatedData: categoryInterface) => {

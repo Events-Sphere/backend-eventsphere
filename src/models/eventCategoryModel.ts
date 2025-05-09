@@ -19,10 +19,14 @@ class EventCategoryModel {
     getAllCategories = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
         const {limit = 10, search = "", page = 1 } = req.body;
         const offset=(page-1)*10
-        const data = await eventCategory.getAllCategories(search,limit,offset);
+        const {categories,totalPage,totalRecords} = await eventCategory.getAllCategories(search,limit,offset);
         res.status(200).json({
             success: true,
-            data: data,
+            data: {
+                categories,
+                totalPage,
+                totalRecords
+            },
             message: "Category"
         })
     }

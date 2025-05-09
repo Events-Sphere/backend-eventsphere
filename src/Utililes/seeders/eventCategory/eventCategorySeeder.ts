@@ -1,12 +1,13 @@
 
 import db, { connectToDatabase } from "../../../Config/knex"
+import { tableName } from "../../../tables/table";
 import { eventCategoryData } from "./eventCategoryData";
 import * as dotenv from "dotenv";
 dotenv.config();
 const insertCategories = async () => {
     try {
         console.log("Category seeder started")
-        const categories = await db("categories").insert(eventCategoryData);
+        const categories = await db(tableName.CATEGORY).insert(eventCategoryData);
         console.log("Category seeder finished")
     }
     catch (e) {

@@ -1,5 +1,4 @@
 export const eventCategoryData=[
-  { "name": "Music", "image": "categories/CATEGORY IMAGES/f8d268fc-abba-4b45-bd16-5184528ac666.jpg" },
   { "name": "Art", "image": "categories/CATEGORY IMAGES/f8d268fc-abba-4b45-bd16-5184528ac666.jpg" },
   { "name": "Technology", "image": "categories/CATEGORY IMAGES/f8d268fc-abba-4b45-bd16-5184528ac666.jpg" },
   { "name": "Food", "image": "categories/CATEGORY IMAGES/f8d268fc-abba-4b45-bd16-5184528ac666.jpg" },
