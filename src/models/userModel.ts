@@ -27,36 +27,58 @@ class UserModel {
 
 
   getAllUsers = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const users = await user.getUsersByRole("user")
+
+    const{status="all",limit=10,search="",page=1}=req.body;
+
+    const offset=(page-1)*10
+    const {users,totalPage,totalRecords} = await user.getUsersByRole("user",status,search,offset,limit);
     return res.status(200).json({
       status: true,
-      data: users,
+      data: {
+        users:users,
+        totalPage:totalPage,
+        totalRecords:totalRecords
+      },
       message: "Users"
     })
   }
   );
 
   getAllOrganizers = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const organizers = await user.getUsersByRole("organizer")
+    const{status="all",limit=10,search="",page=1}=req.body;
+    const offset=(page-1)*10
+    const {organizers,totalPage,totalRecords} = await user.getUsersByRole("organizer",status,search,offset,limit )
     return res.status(200).json({
       status: true,
-      data: organizers,
+      data: {
+        organizers:organizers,
+        totalPage:totalPage,
+        totalRecords:totalRecords
+      },
       message: "Organizers"
     })
   }
   );
 
   getAllSquads = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const organizers = await user.getUsersByRole("squad")
+    const{status="all",limit=10,search="",page=1}=req.body;
+    const offset=(page-1)*10
+    const {squads,totalPage,totalRecords} = await user.getUsersByRole("squad",status,search,offset,limit)
     return res.status(200).json({
       status: true,
-      data: organizers,
-      message: "Organizers"
+      data: {
+        squads:squads,
+        totalPage:totalPage,
+        totalRecords:totalRecords
+      },
+      message: "Squads"
     })
   }
   );
 
   getAllPendingUsers = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const{status="all",limit=10,search="",page=1}=req.body;
+    const offset=(page-1)*10
     const users = await user.getUsersByRoleAndStatus("user", "pending");
     return res.status(200).json({
       status: true,
@@ -68,6 +90,8 @@ class UserModel {
   getAllPendingOrganizers = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     // const ticketPdf = await pdf.generateTicketPdf();
     // const mailData = await mail.sendMailToUser(ticketPdf);
+    const{status="all",limit=10,search="",page=1}=req.body;
+    const offset=(page-1)*10
     const organizers = await user.getUsersByRoleAndStatus("organizer", "pending");
     return res.status(200).json({
       status: true,
@@ -77,6 +101,8 @@ class UserModel {
   });
 
   getAllActiveUsers = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const{status="all",limit=10,search="",page=1}=req.body;
+    const offset=(page-1)*10
     const users = await user.getUsersByRoleAndStatus("user", "active");
     return res.status(200).json({
       status: true,
@@ -86,6 +112,8 @@ class UserModel {
   });
 
   getAllActiveOrganizers = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const{status="all",limit=10,search="",page=1}=req.body;
+    const offset=(page-1)*10
     const organizers = await user.getUsersByRoleAndStatus("organizer", "active");
     return res.status(200).json({
       status: true,
@@ -95,6 +123,8 @@ class UserModel {
   })
 
   getAllRejectedUsers = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const{status="all",limit=10,search="",page=1}=req.body;
+    const offset=(page-1)*10
     const users = await user.getUsersByRoleAndStatus("user", "rejected");
     return res.status(200).json({
       status: true,
@@ -104,6 +134,8 @@ class UserModel {
   });
 
   getAllRejectedOrganizers = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const{status="all",limit=10,search="",page=1}=req.body;
+    const offset=(page-1)*10
     const organizers = await user.getUsersByRoleAndStatus("organizer", "rejected");
     return res.status(200).json({
       status: true,

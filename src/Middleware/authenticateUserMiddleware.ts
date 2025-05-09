@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import db from "../Config/knex";
 import catchAsyncError from "./errorMiddleware";
 import CustomError from "../Utililes/customError";
+import { tableName } from "../tables/table";
  class AuthenticateUser {
   // static async verifyToken(req: Request, res: Response, next: NextFunction) {
   //   try {
@@ -94,9 +95,9 @@ import CustomError from "../Utililes/customError";
     if (user.role === "admin") {
       const admin = await db
         .select("*")
-        .from("admins")
+        .from(tableName.ADMIN)
         .where({ _id: user.id });
-      console.log(admin)
+
       if (admin.length <= 0) {
         return next(new CustomError("Admin not found", 404))
       }

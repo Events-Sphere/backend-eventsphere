@@ -28,6 +28,18 @@ app.use(cors(corseOptions));
 
 
 app.get("/", (_, res) => {
+  console.log("sucess",{meta:{
+    name:"suriya",
+    std:"5"
+  }})
+  console.error("error",{meta:{
+    name:"suriya",
+    std:"5"
+  }})
+  console.warn("error",{meta:{
+    name:"suriya",
+    std:"5"
+  }})
   res.send({
     version : '1.0.0'
   })

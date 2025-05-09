@@ -5,7 +5,7 @@ import UserModel from "../models/userModel";
 import EventModel from "../models/eventModel";
 import ApprovalModel from "../models/approvalModel";
 import AuthenticateUser from "../Middleware/authenticateUserMiddleware";
-
+import EventCategoryModel from "../models/eventCategoryModel";
 const router = Router();
 
 const user = new UserModel();
@@ -13,6 +13,7 @@ const event = new EventModel();
 const approval = new ApprovalModel();
 const authenticate = new AuthenticateUser();
 const fileUploadInstance = new FileUploadMiddleware();
+const category = new EventCategoryModel();
 
 router.post("/login", AuthModel.adminLogin)
 // router.post("/create", authenticate.verifyToken, authenticate.isAdmin, user.createAdmin);
@@ -45,6 +46,44 @@ router.get("/organizer/reject", authenticate.verifyToken, authenticate.isAdmin, 
 
 router.post("/event/approve-reject", authenticate.verifyToken, authenticate.isAdmin, approval.approveOrRejectEvent)
 
+
+router.post("/category/create", authenticate.verifyToken, authenticate.isAdmin, fileUploadInstance.middleware(), category.createCategory);
+router.get("/categories",authenticate.verifyToken,authenticate.isAdmin,category.getAllCategories);
+router.post(
+  "/category/delete",
+  authenticate.verifyToken,
+  authenticate.isAdmin,
+  category.deleteCategory
+);
+
+
+
+
+// router.post(
+//   "/categories/update",
+//   authenticate.verifyToken,
+//   authenticate.isAdmin,
+//   fileUploadInstance.middleware(),
+//   CategoryModel.updateCategoryByID
+// );
+// router.post(
+//   "/categories/delete",
+//   authenticate.verifyToken,
+//   authenticate.isAdmin,
+//   CategoryModel.deleteCategoryByID
+// );
+// router.get(
+//   "/categories/single",
+//   authenticate.verifyToken,
+//   authenticate.isAdmin,
+//   CategoryModel.getCategoryById
+// );
+// router.get(
+//   "/categories",
+//   authenticate.verifyToken,
+//   authenticate.isAdmin,
+//   CategoryModel.getAllCategories
+// );
 
 export default router;
 

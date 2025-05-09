@@ -7,7 +7,10 @@
     "dev": "nodemon ./src/index.ts",
     "prod": "set NODE_ENV=PROD&&nodemon ./src/index.ts",
     "staging": "",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "user":"ts-node ./src/Utililes/seeders/user/userSeeder.ts",
+    "organizer":"ts-node ./src/Utililes/seeders/organizer/organizerSeeder.ts",
+    "eventCategory":"ts-node ./src/Utililes/seeders/eventCategory/eventCategorySeeder.ts"
   },
   "keywords": [],
   "author": "",

@@ -7,8 +7,24 @@ import { tableName } from "../tables/table";
 
 export class UserClass {
 
-  private fetchUsersByRole = async (role: String) => {
-    return await db.select('_id',
+  private fetchUsersByRole = async (role: string, status: string, limit: number,offset:number,search:string) => {
+
+    const query = db("users").where({role:role});
+
+    
+
+      
+    if (["verified", "rejected", "active", "inactive"].includes(status)) {
+      
+      query.andWhere({ status: status })
+    }
+    if(search){
+      query.andWhere("name","like",`%${search}%`)
+    }
+
+    const [{count}]=await query.clone().count("* as count");
+
+    const users = await query.select('_id',
       'name',
       'email',
       'password',
@@ -26,10 +42,17 @@ export class UserClass {
       'proof',
       'longitude',
       'latitude',
-      'status').from("users").where({ role: role });
-  };
+      'status').from("users").offset(offset).limit(limit);
+    return {
+      totalRecords:Number(count),
+      totalPage:Math.ceil(Number(count)/limit),
+      users:users
+    };
+  }
 
-  private fetchUsersByRoleAndStatus = async (role: String, status: string) => {
+
+
+  private fetchUsersByRoleAndStatus = async (role: string, status: string) => {
     return await db.select('_id',
       'name',
       'email',
@@ -70,12 +93,12 @@ export class UserClass {
 
   private sanitiseAndFormatUser = (user: any) => {
     user.createdAt != null ? user.createdAt = FormatDateAndTime.formatDate2(user.createdAt) : null;
-   user.requestedAt != null ? user.requestedAt = FormatDateAndTime.formatDate2(user.requestedAt) : null;
+    user.requestedAt != null ? user.requestedAt = FormatDateAndTime.formatDate2(user.requestedAt) : null;
     user.approvedAt != null ? user.approvedAt = FormatDateAndTime.formatDate2(user.approvedAt) : null;
     delete user.bookings;
     delete user.password;
     delete user.profile;
-    console.log(user.proof)
+
     if (user.proof && user.proof != undefined && user.proof != null) {
       user.proof = JSON.parse(user.proof);
     }
@@ -105,15 +128,20 @@ export class UserClass {
   };
 
   public getUsersByRole = async (
-    role: string
+    role: string,
+    status: string,
+    search:string,
+    offset:number,
+    limit:number
   ) => {
-    let data: any = [];
+    let data: any = {};
     switch (role) {
       case "user":
-        const users: any = await this.fetchUsersByRole(role);
-        data = await Promise.all(
-          users.map(async (user: any) => {
-            console.log(user.bookings)
+        const userResponse: any = await this.fetchUsersByRole(role, status,limit,offset,search);
+
+        
+       const userData = await Promise.all(
+          userResponse.users.map(async (user: any) => {
             const bookings = await db("bookings").
               select("*").whereIn("_id", user.bookings == null ? [] : JSON.parse(user.bookings));
             bookings.forEach((booking: any) => {
@@ -127,12 +155,17 @@ export class UserClass {
             }
           })
         );
+        data={
+          users : userData,
+          totalPage:userResponse.totalPage,
+          totalRecords:userResponse.totalRecords
+        }
         break;
       case "organizer":
-        const org = await this.fetchUsersByRole(role);
-        data = await Promise.all(
-          org.map(async (user: any) => {
-            console.log(user._id)
+        const organizerResponse:any = await this.fetchUsersByRole(role, status,limit,offset,search);
+        console.log(organizerResponse.users)
+       const organizerData = await Promise.all(
+          organizerResponse.users.map(async (user: any) => {
             const organization = await db("organizations").
               select("*").where("_id", user._id);
             organization.forEach((user: any) => {
@@ -147,35 +180,49 @@ export class UserClass {
             }
           })
         );
+        data={
+          organizers : organizerData,
+          totalPage:organizerResponse.totalPage,
+          totalRecords:organizerResponse.totalRecords
+        }
         break;
       case "squad":
-        const squads: any = await this.fetchUsersByRole(role);
-        data = await Promise.all(
-          squads.map(async (user: any) => {
-
+        const squadResponse: any = await this.fetchUsersByRole(role, status,limit,offset,search);
+       const squadData = await Promise.all(
+          squadResponse.users.map(async (user: any) => {
             return {
               ...this.sanitiseAndFormatUser(user),
             }
           })
         );
+        data={
+          squads : squadData,
+          totalPage:squadResponse.totalPage,
+          totalRecords:squadResponse.totalRecords
+        }
         break;
 
       default:
-        data = [];
+        data = {}
         break;
     }
+    console.log("DATA : "+data.totalPage)
     return data;
   }
 
   public getUsersByRoleAndStatus = async (
     role: string,
-    status: string
+    status: string,
+    // search:string,
+    // offset:number,
+    // limit:number
   ) => {
     let data: any = [];
     switch (role) {
       case "user":
-        console.log(role+":"+status)
+        console.log(role + ":" + status)
         const users: any = await this.fetchUsersByRoleAndStatus(role, status);
+       // limit,offset,search
         console.log(users)
         data = await Promise.all(
           users.map(async (user: any) => {
@@ -187,8 +234,8 @@ export class UserClass {
               booking.sub_event_items = JSON.parse(booking.sub_event_items);
               booking.createdAt = FormatDateAndTime.formatDate2(booking.createdAt);
             })
-            if(status == "pending"){
-              const{approvedBy,approvedAt,denial_reason,...remaining}=this.sanitiseAndFormatUser(user)
+            if (status == "pending") {
+              const { approvedBy, approvedAt, denial_reason, ...remaining } = this.sanitiseAndFormatUser(user)
               // return {
               //   ...this.sanitiseAndFormatUser(user),
               //   delete user.approvedBy,
@@ -196,8 +243,8 @@ export class UserClass {
               // }
               return remaining;
             }
-            else{
-              const{denial_reason,...remaingData}=this.sanitiseAndFormatUser(user)
+            else {
+              const { denial_reason, ...remaingData } = this.sanitiseAndFormatUser(user)
               return {
                 ...remaingData,
                 bookingData: bookings
@@ -213,39 +260,39 @@ export class UserClass {
             console.log(user._id)
             const [organization] = await db("organizations").
               select("*").where("_id", user._id);
-            
-              delete organization._id;
-              
+
+            delete organization._id;
 
 
-            if(status == "pending"){
-              const{approvedBy,approvedAt,requestedAt,denial_reason,...remaining}=this.sanitiseAndFormatUser(user)
-        
+
+            if (status == "pending") {
+              const { approvedBy, approvedAt, requestedAt, denial_reason, ...remaining } = this.sanitiseAndFormatUser(user)
+
               return {
                 ...remaining,
                 organizationData: {
-                  name:organization.name,
-                  code:organization.code,
-                  noc:organization.noc
+                  name: organization.name,
+                  code: organization.code,
+                  noc: organization.noc
 
                 }
               }
             }
-            else{
+            else {
               organization.pending_events = JSON.parse(organization.pending_events);
               organization.active_events = JSON.parse(organization.active_events);
               organization.completed_events = JSON.parse(organization.completed_events);
-            const{requestedAt,denial_reason,...remaining}=this.sanitiseAndFormatUser(user)
+              const { requestedAt, denial_reason, ...remaining } = this.sanitiseAndFormatUser(user)
               return {
                 ...remaining,
                 organizationData: organization
               }
             }
-            
 
 
 
-            
+
+
           })
         );
         break;
@@ -285,7 +332,7 @@ export class UserClass {
           organizationData: organization
         };
       case "squad":
-      const [squard]: any = await this.fetchUsersByRoleAndId(role, id);
+        const [squard]: any = await this.fetchUsersByRoleAndId(role, id);
         if (!squard) return null
         return await this.sanitiseAndFormatUser(squard)
       default:
@@ -296,7 +343,7 @@ export class UserClass {
   createSquad = async (
     userData: SquardInterface
   ) => {
-    const currentTime= FormatDateAndTime.getCurrentTimestamp();
+    const currentTime = FormatDateAndTime.getCurrentTimestamp();
     const results = await db("users").insert({
       name: userData.name,
       email: userData.email,
@@ -307,8 +354,8 @@ export class UserClass {
       location: userData.location,
       profile: userData.profile,
       status: "active",
-      approvedBy:userData.approvedBy,
-      approvedAt:currentTime
+      approvedBy: userData.approvedBy,
+      approvedAt: currentTime
     });
     return results;
   };
