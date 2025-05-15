@@ -21,9 +21,9 @@ router.post("/create", user.createAdmin);
 
 router.post("/squard/create", authenticate.verifyToken, authenticate.isAdmin, fileUploadInstance.middleware(), user.createSquad)
 
-router.get("/users", authenticate.verifyToken, authenticate.isAdmin, user.getAllUsers)
-router.get("/organizers", authenticate.verifyToken, authenticate.isAdmin, user.getAllOrganizers)
-router.get("/squads", authenticate.verifyToken, authenticate.isAdmin, user.getAllSquads)
+router.post("/users", authenticate.verifyToken, authenticate.isAdmin, user.getAllUsers)
+router.post("/organizers", authenticate.verifyToken, authenticate.isAdmin, user.getAllOrganizers)
+router.post("/squads", authenticate.verifyToken, authenticate.isAdmin, user.getAllSquads)
 
 router.get("/users/active", authenticate.verifyToken, authenticate.isAdmin, user.getAllActiveUsers)
 router.get("/users/pending", authenticate.verifyToken, authenticate.isAdmin, user.getAllPendingUsers)

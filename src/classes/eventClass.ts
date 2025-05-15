@@ -25,12 +25,15 @@ class EventClass {
         }
         const eventsWithSubEvents = await Promise.all(
             events.map(async (event: any) => {
+
                 const subEventIds = JSON.parse(event.sub_event_items || "[]");
                 const subEvents = subEventIds.length
                     ? await db("subevents")
                         .whereIn("_id", subEventIds)
                         .where("event_id", event._id)
                     : [];
+
+
                 const subEventsWithImages = subEvents.map((subEvent: any) =>
                 (
                     {
@@ -38,12 +41,17 @@ class EventClass {
                         restrictions: subEvent.restrictions != undefined ? JSON.parse(subEvent.restrictions) : "[]",
                         cover_images: JSON.parse(subEvent.cover_images || "[]"),
                     }));
+
+
+
+
+
                 const parsedEventData = {
                     ...event,
                     cover_images: JSON.parse(event.cover_images),
                     tags: JSON.parse(event.tags),
                 };
-                return { ...parsedEventData, sub_events: { ...subEventsWithImages } };
+                return { ...parsedEventData, sub_events: [ ...subEventsWithImages ] };
             })
         );
         return eventsWithSubEvents;

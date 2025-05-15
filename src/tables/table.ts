@@ -12,7 +12,9 @@ export const tableName = NODE_ENV == 'DEV' ?
     USERS:"users",
     EVENTBOOKINGS:"bookings",
     ORGANIZATIONS:"organizations"
-} :
+} 
+:
+
 {
     ADMIN: "es_admins",
     CATEGORY:"es_event_categories",
