@@ -324,7 +324,33 @@ class EventModel {
         message: "Event created successfully"
       })
     }
-  )
+  );
+
+ searchEvents = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const {query="", eventType="active_events"} = req.body;
+    if(!req.user?.id) return res.status(400).send({
+      success: false,
+      message: "Organizer ID missing"
+    });
+    if(typeof query !== "string" || query.trim() === ""){
+      return res.status(400).send({
+        success: false,
+        message: "Query is required and must be a string"
+      });
+    }
+    const allowedTypes = ["active_events", "pending_events", "completed_events"];
+    if (!allowedTypes.includes(eventType)) {
+      return res.status(400).json({ success: false, message: "Invalid event type" });
+    }
+    const events = await event.searchEvents(req.user?.id, query.trim(), eventType);
+    return res.status(200).json({
+      success: true,
+      data: events,
+      message: "Events retrieved successfully"
+    });
+  });
+
+
 }
 
 export default EventModel;

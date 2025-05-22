@@ -5,15 +5,15 @@ class EventClass {
 
     getEventById = async (
         eventId: number
-      )=> {
-          const mainEvent = await db("events")
+    ) => {
+        const mainEvent = await db("events")
             .select("*")
             .where("_id", "=", eventId)
             .first();
-          if(mainEvent)return mainEvent
-          return null
-        
-      };
+        if (mainEvent) return mainEvent
+        return null
+
+    };
 
     getEventsByStatus = async (
         status: string,
@@ -51,7 +51,7 @@ class EventClass {
                     cover_images: JSON.parse(event.cover_images),
                     tags: JSON.parse(event.tags),
                 };
-                return { ...parsedEventData, sub_events: [ ...subEventsWithImages ] };
+                return { ...parsedEventData, sub_events: [...subEventsWithImages] };
             })
         );
         return eventsWithSubEvents;
@@ -59,9 +59,9 @@ class EventClass {
 
     getEventsByStatusAndOrganizerId = async (
         status: string,
-        id:number
+        id: number
     ) => {
-        const query = db("events").select("*").where("org_id",id).andWhere("active_status", status);
+        const query = db("events").select("*").where("org_id", id).andWhere("active_status", status);
         const events = await query;
         if (!events || events.length === 0) {
             return [];
@@ -95,44 +95,75 @@ class EventClass {
     createEvent = async (
         mainEventData: MainEventInterface,
         subEventData: SubEventInterface[]
-      ) => { 
-          const [eventId] = await db("events")
+    ) => {
+        const [eventId] = await db("events")
             .insert(mainEventData)
-            // .returning("_id");
-            console.log(`event ID : ${eventId}`)
-          let subEventIds = [];
-          for (let subEvent of subEventData) {
+        // .returning("_id");
+        console.log(`event ID : ${eventId}`)
+        let subEventIds = [];
+        for (let subEvent of subEventData) {
             subEvent.event_id = eventId;
             const [sub] = await db("subevents").insert(subEvent);
             subEventIds.push(sub);
-          }
-          const subEvent = await db("events")
+        }
+        const subEvent = await db("events")
             .where({ _id: eventId })
             .update({
-              sub_event_items: JSON.stringify(subEventIds),
+                sub_event_items: JSON.stringify(subEventIds),
             });
-          return eventId;
-      };
+        return eventId;
+    };
 
-      
-  updateOrganizationPendingEvent = async (
-    orgId: number,
-    eventId: number
-  )=> {
-      const result: any[] = await db("organizations")
-        .select("pending_events")
-        .where("_id", orgId);
-     const existingPendingEvents = result[0].pending_events || [];
-      const updatedPendingEvents = [
-        ...new Set([...existingPendingEvents, eventId]),
-      ];
-      await db("organizations")
-        .where("_id", orgId)
-        .update({ pending_events: updatedPendingEvents });
-      return true;
-   
-  };
 
+    updateOrganizationPendingEvent = async (
+        orgId: number,
+        eventId: number
+    ) => {
+        const result: any[] = await db("organizations")
+            .select("pending_events")
+            .where("_id", orgId);
+        const existingPendingEvents = result[0].pending_events || [];
+        const updatedPendingEvents = [
+            ...new Set([...existingPendingEvents, eventId]),
+        ];
+        await db("organizations")
+            .where("_id", orgId)
+            .update({ pending_events: updatedPendingEvents });
+        return true;
+
+    };
+
+    searchEvents = async (
+        orgId: number,
+        query: string,
+        eventType: string = "active_events"
+    ) => {
+        const response: any[] = await db("es_organizations")
+            .select(eventType)
+            .where("_id", orgId);
+
+        let eventsIds: number[] = [];
+
+        if (response?.[0]?.[eventType]) {
+            try {
+                const value = response[0][eventType];
+                eventsIds = Array.isArray(value) ? value : JSON.parse(value);
+            } catch (err) {
+                console.error("Failed to parse eventType field:", err);
+            }
+        }
+
+        if (!Array.isArray(eventsIds) || eventsIds.length === 0) {
+            return [];
+        }
+
+        const result: any[] = await db("events")
+            .select("*")
+            .whereIn("id", eventsIds)
+            .andWhere("name", "like", `%${query}%`);
+
+        return result;
+    };
 
 }
 
