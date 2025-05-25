@@ -39,11 +39,11 @@ router.get("/events/pending", authenticate.verifyToken, authenticate.isAdmin, ev
 router.get("/events/rejected", authenticate.verifyToken, authenticate.isAdmin, event.getAllRejectedEvents)
 router.get("/events/completed", authenticate.verifyToken, authenticate.isAdmin, event.getAllCompletedEvents)
 
-router.get("/user/approve", authenticate.verifyToken, authenticate.isAdmin, approval.approveUser)
-router.get("/user/reject", authenticate.verifyToken, authenticate.isAdmin, approval.rejectUser)
+router.post("/user/approve", authenticate.verifyToken, authenticate.isAdmin, approval.approveUser)
+router.post("/user/reject", authenticate.verifyToken, authenticate.isAdmin, approval.rejectUser)
 
-router.get("/organizer/approve", authenticate.verifyToken, authenticate.isAdmin, approval.approveOrganizer)
-router.get("/organizer/reject", authenticate.verifyToken, authenticate.isAdmin, approval.rejectOrganizer)
+router.post("/organizer/approve", authenticate.verifyToken, authenticate.isAdmin, approval.approveOrganizer)
+router.post("/organizer/reject", authenticate.verifyToken, authenticate.isAdmin, approval.rejectOrganizer)
 
 router.post("/event/approve-reject", authenticate.verifyToken, authenticate.isAdmin, approval.approveOrRejectEvent)
 
