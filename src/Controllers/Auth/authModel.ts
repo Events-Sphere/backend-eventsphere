@@ -1,11 +1,12 @@
 import { AuthClass } from "./authClass";
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { ApiResponseHandler } from "../../Middleware/apiResponseMiddleware";
 import { Validators } from "../../Utililes/validators";
 import { PasswordEncryption } from "../../Utililes/passwordEncryption";
 import db from "../../Config/knex";
 import { FirebaseStorage } from "../../Services/Storage";
 import { Jwt } from "../../Utililes/jwt";
+import jwt from "jsonwebtoken";
 
 const authInstance = new AuthClass();
 const isValidData = (data: any, fields: string[]): boolean => {
@@ -32,11 +33,11 @@ export const login = async (req: Request, res: Response) => {
   try {
     const userData = req.body;
     if (!isValidData(userData, ["email", "password"])) {
-      return ApiResponseHandler.warning(res, "All fields are required", null,401);
+      return ApiResponseHandler.warning(res, "All fields are required", null, 401);
     }
 
     if (!Validators.isValidEmail(userData.email)) {
-      return ApiResponseHandler.warning(res, "Enter valid email", null,401);
+      return ApiResponseHandler.warning(res, "Enter valid email", null, 401);
     }
 
     const isUserExists: any = await authInstance.userLogin(userData);
@@ -52,7 +53,7 @@ export const login = async (req: Request, res: Response) => {
       return ApiResponseHandler.warning(
         res,
         "No user found with provided credentials",
-        null,401
+        null, 401
       );
     }
 
@@ -64,7 +65,7 @@ export const login = async (req: Request, res: Response) => {
     if (!isPasswordCorrect) {
       return ApiResponseHandler.warning(
         res,
-        "Password does not match with your credentials",null,
+        "Password does not match with your credentials", null,
         401
       );
     }
@@ -81,8 +82,8 @@ export const login = async (req: Request, res: Response) => {
       );
     }
 
-    const accessToken={
-      accessToken:token.data
+    const accessToken = {
+      accessToken: token.data
     }
     return ApiResponseHandler.success(res, accessToken, "Login Successful", 200);
   } catch (error) {
@@ -94,11 +95,11 @@ export const adminLogin = async (req: Request, res: Response) => {
   try {
     const userData = req.body;
     if (!isValidData(userData, ["email", "password"])) {
-      return ApiResponseHandler.warning(res, "All fields are required", null,401);
+      return ApiResponseHandler.warning(res, "All fields are required", null, 401);
     }
 
     if (!Validators.isValidEmail(userData.email)) {
-      return ApiResponseHandler.warning(res, "Enter valid email", null,401);
+      return ApiResponseHandler.warning(res, "Enter valid email", null, 401);
     }
 
     const isUserExists: any = await authInstance.adminLogin(userData);
@@ -114,7 +115,7 @@ export const adminLogin = async (req: Request, res: Response) => {
       return ApiResponseHandler.warning(
         res,
         "No user found with provided credentials",
-        null,401
+        null, 401
       );
     }
 
@@ -126,7 +127,7 @@ export const adminLogin = async (req: Request, res: Response) => {
     if (!isPasswordCorrect) {
       return ApiResponseHandler.warning(
         res,
-        "Password does not match with your credentials",null,
+        "Password does not match with your credentials", null,
         401
       );
     }
@@ -143,8 +144,8 @@ export const adminLogin = async (req: Request, res: Response) => {
       );
     }
 
-    const accessToken={
-      accessToken:token.data
+    const accessToken = {
+      accessToken: token.data
     }
     return ApiResponseHandler.success(res, accessToken, "Login Successful", 200);
   } catch (error) {
@@ -167,46 +168,46 @@ export const signup = async (req: Request, res: Response) => {
     //college code range check and duplicate check
 
     if (!userData.role) {
-      return ApiResponseHandler.warning(res, "user role is required",null, 401);
+      return ApiResponseHandler.warning(res, "user role is required", null, 401);
     }
 
     const requiredFields =
       userData.role !== "organizer"
         ? ["name", "email", "ccode", "mobile", "role", "password", "location"]
         : [
-            "name",
-            "email",
-            "ccode",
-            "mobile",
-            "role",
-            "password",
-            "location",
-            "longitude",
-            "latitude",
-            "collegeName",
-            "collegeCode",
-          ];
+          "name",
+          "email",
+          "ccode",
+          "mobile",
+          "role",
+          "password",
+          "location",
+          "longitude",
+          "latitude",
+          "collegeName",
+          "collegeCode",
+        ];
     if (userData.role === "organizer" && !req.files) {
-      return ApiResponseHandler.warning(res, "all image files required ",null, 401);
+      return ApiResponseHandler.warning(res, "all image files required ", null, 401);
     }
 
     if (!isValidData(userData, requiredFields)) {
-      return ApiResponseHandler.warning(res, "All fields are requireds",null, 401);
+      return ApiResponseHandler.warning(res, "All fields are requireds", null, 401);
     }
 
     if (!Validators.isValidEmail(userData.email)) {
-      return ApiResponseHandler.warning(res, "Enter valid email",null, 401);
+      return ApiResponseHandler.warning(res, "Enter valid email", null, 401);
     }
 
     if (!Validators.isValidMobile(userData.mobile)) {
-      return ApiResponseHandler.warning(res, "Enter valid mobile",null, 401);
+      return ApiResponseHandler.warning(res, "Enter valid mobile", null, 401);
     }
 
     if (!Validators.isValidPassword(userData.password)) {
       return ApiResponseHandler.warning(
         res,
         "Password must be at least 8 characters",
-       null, 401
+        null, 401
       );
     }
 
@@ -226,7 +227,7 @@ export const signup = async (req: Request, res: Response) => {
       return ApiResponseHandler.warning(
         res,
         "Email or Mobile already in use",
-       null, 401
+        null, 401
       );
     }
 
@@ -238,7 +239,7 @@ export const signup = async (req: Request, res: Response) => {
     let responseData: any;
     if (userData.role === "organizer") {
       const isOrganiztionCodeExists: any = await authInstance.isOrganizationCodeExists(
-      userData.collegeCode
+        userData.collegeCode
       );
       if (isOrganiztionCodeExists.status === false) {
         return ApiResponseHandler.error(
@@ -252,7 +253,7 @@ export const signup = async (req: Request, res: Response) => {
         return ApiResponseHandler.warning(
           res,
           "Organization code already in use",
-         null, 401
+          null, 401
         );
       }
       const imageList: ParsedFiles = {
@@ -310,9 +311,9 @@ export const signup = async (req: Request, res: Response) => {
         );
       }
     } else {
-      
+
       responseData = await authInstance.userSignup(userData);
-     
+
       if (responseData.status === false) {
         return ApiResponseHandler.error(
           res,
@@ -323,11 +324,11 @@ export const signup = async (req: Request, res: Response) => {
     }
     console.log(responseData)
     console.log(responseData.data)
-    
-console.log("NEW DATA:"+
-  responseData.data[0]+
-  userData.role,
-);
+
+    console.log("NEW DATA:" +
+      responseData.data[0] +
+      userData.role,
+    );
     const token: any = await Jwt.generateToken({
       id: responseData.data[0],
       role: userData.role,
@@ -339,14 +340,36 @@ console.log("NEW DATA:"+
         500
       );
     }
-    const accessToken={
-      accessToken:token.data
+    const accessToken = {
+      accessToken: token.data
     }
 
     return ApiResponseHandler.success(res, accessToken, "Signup Successful", 200);
   } catch (error) {
     console.log(error);
     return ApiResponseHandler.error(res, "Internal server error", 501);
+  }
+};
+
+
+export const validateSession = async(req:Request, res:Response): Promise<any> => {
+  try {
+    const authHeader: any = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).send({ success: false, message: "Unauthorized: No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    jwt.verify(token, process.env.JWT_SECRET_KEY || "12345qwer");
+    return res.status(200).send({
+      success: true,
+      data: token,
+      message: "Valid session"
+    });
+  } catch (err) {
+    return res.status(401).send({ success: false, message: "Invalid or expired token" });
   }
 };
 
@@ -370,7 +393,7 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
     ];
 
     if (!isValidData(userData, requiredFields)) {
-      return ApiResponseHandler.warning(res, "All fields are required",null, 401);
+      return ApiResponseHandler.warning(res, "All fields are required", null, 401);
     }
     if (!Validators.isValidEmail(userData.email)) {
       return ApiResponseHandler.warning(res, "Enter valid email", 401);
@@ -412,7 +435,7 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
         userData.email,
         userData.mobile
       );
-      console.log(isEmailMobileExists.data)
+    console.log(isEmailMobileExists.data)
 
     if (isEmailMobileExists.status === false) {
       return ApiResponseHandler.error(
@@ -429,7 +452,7 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
       );
     }
     ////////////////////////////////////////////////////////////////////////
-    const imageList:any = {
+    const imageList: any = {
       proof: [],
       profile: null,
     };
@@ -439,9 +462,9 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
         if (file.fieldname === "noc") {
           imageList.noc = file;
         } else
-         if (file.fieldname === "proof") {
-          imageList.proof.push(file);
-        }
+          if (file.fieldname === "proof") {
+            imageList.proof.push(file);
+          }
       });
     } else {
       return ApiResponseHandler.error(res, "Image files not found", 400);
@@ -478,7 +501,7 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
 
     ///////////////////////////////////////////////////////////////////////
 
-    
+
 
     if (Array.isArray(req.files)) {
       (req.files as Express.Multer.File[]).forEach((file) => {
@@ -486,7 +509,7 @@ export const verifyUserIdentity = async (req: Request, res: Response) => {
           imageList.proof.push(file);
         }
         else if (file.fieldname === "profile") {
-          imageList.profile=file;
+          imageList.profile = file;
         }
       });
     } else {
@@ -998,7 +1021,12 @@ export const createSquard = async (req: Request, res: Response) => {
   } catch (error) {
     return ApiResponseHandler.error(res, "Internal server error", 501);
   }
+
+
 };
+
+
+
 
 //ADMIN-->UPDATE-INTERNAL-TEAM--> http://localhost:3000/
 

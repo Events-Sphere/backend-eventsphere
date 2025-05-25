@@ -25,6 +25,7 @@ interface ParsedFiles {
   };
 }
 
+
 class EventModel {
 
   private isValidEventData = (data: any): data is MainEventInterface => {
@@ -326,13 +327,13 @@ class EventModel {
     }
   );
 
- searchEvents = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const {query="", eventType="active_events"} = req.body;
-    if(!req.user?.id) return res.status(400).send({
+  searchEvents = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const { query = "", eventType = "active_events" } = req.body;
+    if (!req.user?.id) return res.status(400).send({
       success: false,
       message: "Organizer ID missing"
     });
-    if(typeof query !== "string" || query.trim() === ""){
+    if (typeof query !== "string" || query.trim() === "") {
       return res.status(400).send({
         success: false,
         message: "Query is required and must be a string"
@@ -348,6 +349,19 @@ class EventModel {
       data: events,
       message: "Events retrieved successfully"
     });
+  });
+
+  getDashboardOverview = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    req.user = {id : 21, role:"organizer"};
+    if (!req.user?.id || typeof req.user?.id !== 'number') {
+      throw new Error("Invalid organization ID");
+    }
+    const dashboardStat = await event.getOrganizationDashboardStats(req.user?.id);
+    return res.status(200).send({
+      success: true,
+      data: dashboardStat,
+      message: "Dashboard overview data retrieved successfully."
+    })
   });
 
 

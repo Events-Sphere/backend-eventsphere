@@ -127,6 +127,10 @@ export class UserClass {
     return results;
   };
 
+  getUserById = async (id : number)=>{
+    const result : any[] = await db.select("*").from(tableName.USERS).where("_id", id);
+    return result;
+  }
   public getUsersByRole = async (
     role: string,
     status: string,

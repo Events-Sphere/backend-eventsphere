@@ -7,6 +7,7 @@ const router = Router();
 
 router.post("/login", AuthModel.login);
 router.post("/signup", AuthModel.signup);
+router.post("/validate-session", AuthModel.validateSession);
 router.post(
   "/organizer/signup",
   fileUploadInstance.middleware(),

@@ -1,5 +1,18 @@
+import { isNull } from "util";
 import db from "../Config/knex";
 import { MainEventInterface, SubEventInterface } from "../Interfaces/eventInterface";
+
+interface DashboardStats {
+    activeEventsCount: number;
+    pendingEventsCount: number;
+    completedEventsCount: number;
+    bookedEventsCount: number;
+    totalEventsCount: number;
+    totalEarnings: number;
+    weeklyEvents: any[];
+}
+
+
 
 class EventClass {
 
@@ -163,6 +176,51 @@ class EventClass {
             .andWhere("name", "like", `%${query}%`);
 
         return result;
+    };
+
+    _isNull = (value: any): boolean => {
+        return value === null || value === undefined;
+    };
+
+
+    getOrganizationDashboardStats = async (orgId: number): Promise<DashboardStats> => {
+        const defaultStats: DashboardStats = {
+            activeEventsCount: 0,
+            pendingEventsCount: 0,
+            completedEventsCount: 0,
+            bookedEventsCount: 0,
+            totalEventsCount: 0,
+            totalEarnings: 0,
+            weeklyEvents: []
+        };
+        const [org] = await db("es_organizations").select("*").where("_id", orgId);
+
+
+        if (!org) {
+            console.warn(`Organization with ID ${orgId} not found.`);
+            return defaultStats;
+        }
+
+        const eventData = await db("events").select("*").whereIn("verified_status", ["active", "pending"]);
+
+        const activeEvents = (this._isNull(org.active_events)) ? [] : JSON.parse(org.active_events || "[]");
+        const pendingEvents = (this._isNull(org.pending_events)) ? [] : JSON.parse(org.pending_events || "[]");
+        const completedEvents = (this._isNull(org.completed_events)) ? [] : JSON.parse(org.completed_events || "[]");
+        // const bookedEvents = JSON.parse(org.booked_events || "[]");
+        const weeklyEvents: any[] = (this._isNull(eventData[0]) ? [] : eventData);
+
+        return {
+            activeEventsCount: Array.isArray(activeEvents) ? activeEvents.length : 0,
+            pendingEventsCount: Array.isArray(pendingEvents) ? pendingEvents.length : 0,
+            completedEventsCount: Array.isArray(completedEvents) ? completedEvents.length : 0,
+            bookedEventsCount:
+                0,
+            // Array.isArray(org.booked_events) ? org.booked_events.length : 0
+            totalEventsCount: typeof org.events_counts === "number" ? org.events_counts : 0,
+            totalEarnings: org.total_earnings,
+            weeklyEvents: Array.isArray(weeklyEvents) ? eventData.reverse() : []
+        };
+
     };
 
 }

@@ -22,6 +22,7 @@ router.post("/create", user.createAdmin);
 router.post("/squard/create", authenticate.verifyToken, authenticate.isAdmin, fileUploadInstance.middleware(), user.createSquad)
 
 router.post("/users", authenticate.verifyToken, authenticate.isAdmin, user.getAllUsers)
+router.post("/users/single", authenticate.verifyToken, authenticate.isAdmin, user.getUserById)
 router.post("/organizers", authenticate.verifyToken, authenticate.isAdmin, user.getAllOrganizers)
 router.post("/squads", authenticate.verifyToken, authenticate.isAdmin, user.getAllSquads)
 
@@ -48,7 +49,7 @@ router.post("/event/approve-reject", authenticate.verifyToken, authenticate.isAd
 
 
 router.post("/category/create", authenticate.verifyToken, authenticate.isAdmin, fileUploadInstance.middleware(), category.createCategory);
-router.post("/categories",authenticate.verifyToken,authenticate.isAdmin,category.getAllCategories);
+router.get("/categories",authenticate.verifyToken,authenticate.isAdmin,category.getAllCategories);
 router.post(
   "/category/delete",
   authenticate.verifyToken,

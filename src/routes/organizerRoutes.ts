@@ -12,7 +12,7 @@ const authenticate = new AuthenticateUser();
 const fileUploadInstance = new FileUploadMiddleware();
 
 router.get("/profile", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, user.getUserProfileByRoleAndId)
-
+router.get("/dashboard/overview", event.getDashboardOverview);
 router.post("/event/create", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, fileUploadInstance.middleware(), event.createEvent);
 router.get("/events/search", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, event.searchEvents);
 router.get("/events/active", authenticate.verifyToken, authenticate.isOrganizerHaveAccess, event.getAllActiveEventsByOrganizerId)
