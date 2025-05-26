@@ -5,7 +5,7 @@ class ApprovalClass {
 
   approveUserById = async (userId: number, approvedBy: number) => {
     const currentTimestamp = FormatDateAndTime.getCurrentTimestamp();
-    const data = await db("users").where({ _id: userId }).update({
+    const data = await db("es_users").where({ _id: userId }).update({
       approvedBy: approvedBy,
       approvedAt: currentTimestamp,
       status: "active",
@@ -17,7 +17,7 @@ class ApprovalClass {
 
   rejectUserById = async (userId: number, approvedBy: number, denialReason: string) => {
     const currentTimestamp = FormatDateAndTime.getCurrentTimestamp();
-    const data = await db("users").where({ _id: userId }).update({
+    const data = await db("es_users").where({ _id: userId }).update({
       approvedBy: approvedBy,
       approvedAt: currentTimestamp,
       status: "rejected",

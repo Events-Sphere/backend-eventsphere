@@ -35,7 +35,7 @@ class ApprovalModel {
   rejectUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     const approvedBy = req.user!.id;
     if (!approvedBy) {
-      return next(new CustomError("Approver ID is missing", 400))
+      return next(new CustomError("Rejecter ID is missing", 400))
     }
     const userId = req.body.id;
     if (!userId) {

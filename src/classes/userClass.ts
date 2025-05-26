@@ -7,16 +7,15 @@ import { tableName } from "../tables/table";
 
 export class UserClass {
 
-  private fetchUsersByRole = async (role: string, status: string, limit: number,offset:number,search:string) => {
+  private fetchUsersByRole = async (role: string, status: string[], limit: number,offset:number,search:string) => {
 
     const query = db(tableName.USERS).where({role:role});
 
     
 
       
-    if (["verified", "rejected", "active", "inactive"].includes(status)) {
-      
-      query.andWhere({ status: status })
+    if (status.includes("verified") || status.includes("rejected") || status.includes("active") || status.includes("inactive") || status.includes("pending")) {
+      query.whereIn("status", status)
     }
     if(search){
       query.andWhere("name","like",`%${search}%`)
@@ -133,7 +132,7 @@ export class UserClass {
   }
   public getUsersByRole = async (
     role: string,
-    status: string,
+    status: string[],
     search:string,
     offset:number,
     limit:number

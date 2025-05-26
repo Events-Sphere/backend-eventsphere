@@ -18,7 +18,7 @@ export class AuthClass {
       try {
         const results: any = await db
           .select("*")
-          .from("users")
+          .from("es_users")
           .where("email", email)
           .orWhere("mobile", mobile);
         resolve({ status: true, data: results });
@@ -52,13 +52,12 @@ export class AuthClass {
 
   isOrganizationCodeExists = async (
     code: number,
-
   ): Promise<{ status: boolean; data?: any }> => {
     return new Promise(async (resolve, reject) => {
       try {
         const results: any = await db
           .select("*")
-          .from("organizations")
+          .from("es_organizations ")
           .where("code", code)
 
         resolve({ status: true, data: results });
@@ -197,7 +196,7 @@ export class AuthClass {
   ): Promise<{ status: boolean; data?: any }> => {
     return new Promise(async (resolve, reject) => {
       try {
-        const result = await db("users").insert({
+        const result = await db("es_users").insert({
           name: userData.name,
           email: userData.email,
           mobile: userData.mobile,
@@ -211,7 +210,7 @@ export class AuthClass {
           status:"pending"
         });
 
-        await db("organizations").insert({
+        await db("es_organizations").insert({
           _id: result[0],
           name: userData.collegeName,
           code: userData.collegeCode,

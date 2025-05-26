@@ -28,7 +28,7 @@ class UserModel {
 
   getAllUsers = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
 
-    const { status = "all", limit = 10, search = "", page = 1 } = req.body;
+    const { status = ["all"], limit = 10, search = "", page = 1 } = req.body;
 
     const offset = (page - 1) * 10
     const { users, totalPage, totalRecords } = await user.getUsersByRole("user", status, search, offset, limit);

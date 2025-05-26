@@ -11,7 +11,7 @@ router.post("/validate-session", AuthModel.validateSession);
 router.post(
   "/organizer/signup",
   fileUploadInstance.middleware(),
-  AuthModel.signup
+  AuthModel.organizerSignup
 );
 
 
