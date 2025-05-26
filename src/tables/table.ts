@@ -9,7 +9,7 @@ export const tableName = NODE_ENV == 'DEV' ?
 {
     ADMIN: "admins",
     CATEGORY:"categories",
-    USERS:"users",
+    USERS:"es_users",
     EVENTBOOKINGS:"bookings",
     ORGANIZATIONS:"organizations"
 } 
