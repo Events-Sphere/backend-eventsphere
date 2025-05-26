@@ -24,6 +24,7 @@ router.post("/squard/create", authenticate.verifyToken, authenticate.isAdmin, fi
 router.post("/users", authenticate.verifyToken, authenticate.isAdmin, user.getAllUsers)
 router.post("/users/single", authenticate.verifyToken, authenticate.isAdmin, user.getUserById)
 router.post("/organizers", authenticate.verifyToken, authenticate.isAdmin, user.getAllOrganizers)
+router.post("/organizer/single", authenticate.verifyToken, authenticate.isAdmin, user.getOrganizerById)
 router.post("/squads", authenticate.verifyToken, authenticate.isAdmin, user.getAllSquads)
 
 router.get("/users/active", authenticate.verifyToken, authenticate.isAdmin, user.getAllActiveUsers)

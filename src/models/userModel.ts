@@ -71,6 +71,17 @@ class UserModel {
     })
   }
   );
+  getOrganizerById = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    const userData = await user.getUserById(Number(req.body._id));
+    return res.status(200).json({
+      status: true,
+      data: {
+        users: userData
+      },
+      message: "Organizer detail retrieved successfully"
+    })
+  }
+  );
 
   getAllSquads = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     const { status = "all", limit = 10, search = "", page = 1 } = req.body;
