@@ -51,7 +51,7 @@ export const userData = [
 
     "longitude": 73.8567,
     "latitude": 18.5204,
-    "status": "approved"
+    "status":"active"
   },
   {
     "name": "priyaKapoor",
@@ -87,7 +87,7 @@ export const userData = [
 
     "longitude": 75.7873,
     "latitude": 26.9124,
-    "status": "approved"
+    "status":"active"
   },
   {
     "name": "nainaJoshi",
@@ -123,7 +123,7 @@ export const userData = [
 
     "longitude": 78.4867,
     "latitude": 17.3850,
-    "status": "approved"
+    "status":"active"
   },
   {
     "name": "ishaPatel",
@@ -159,7 +159,7 @@ export const userData = [
     "location": "Kochi",
     "longitude": 76.2673,
     "latitude": 9.9312,
-    "status": "approved"
+    "status":"active"
   },
   {
     "name": "rheaDesai",
@@ -195,7 +195,7 @@ export const userData = [
     // "proof" : "aadhar.png",
 
     "latitude": 26.8467,
-    "status": "approved"
+    "status":"active"
   },
   {
     "name": "simranKaur",
@@ -231,7 +231,7 @@ export const userData = [
     "latitude": 19.9975,
     // "proof" : "aadhar.png",
 
-    "status": "approved"
+    "status":"active"
   },
   {
     "name": "avaniThakur",
@@ -267,7 +267,7 @@ export const userData = [
     "latitude": 8.5241,
     // "proof" : "aadhar.png",
 
-    "status": "approved"
+    "status":"active"
   },
   {
     "name": "anayaShetty",
@@ -337,6 +337,6 @@ export const userData = [
     "longitude": 73.1812,
     "latitude": 22.3072,
     // "proof" : "aadhar.png",
-    "status": "approved"
+    "status":"active"
   }
 ]

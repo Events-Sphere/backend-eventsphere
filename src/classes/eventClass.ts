@@ -1,6 +1,9 @@
 import { isNull } from "util";
 import db from "../Config/knex";
 import { MainEventInterface, SubEventInterface } from "../Interfaces/eventInterface";
+import { eventNames } from "process";
+import { tableName } from "../tables/table";
+import { table } from "console";
 
 interface DashboardStats {
     activeEventsCount: number;
@@ -31,7 +34,7 @@ class EventClass {
     getEventsByStatus = async (
         status: string,
     ) => {
-        const query = db("events").select("*").where("active_status", status);
+        const query = db(tableName.EVENTS).select("*").where("status", status);
         const events = await query;
         if (!events || events.length === 0) {
             return [];
@@ -41,7 +44,7 @@ class EventClass {
 
                 const subEventIds = JSON.parse(event.sub_event_items || "[]");
                 const subEvents = subEventIds.length
-                    ? await db("subevents")
+                    ? await db(tableName.SUBEVENTS)
                         .whereIn("_id", subEventIds)
                         .where("event_id", event._id)
                     : [];
@@ -109,17 +112,17 @@ class EventClass {
         mainEventData: MainEventInterface,
         subEventData: SubEventInterface[]
     ) => {
-        const [eventId] = await db("events")
+        const [eventId] = await db(tableName.EVENTS)
             .insert(mainEventData)
         // .returning("_id");
         console.log(`event ID : ${eventId}`)
         let subEventIds = [];
         for (let subEvent of subEventData) {
             subEvent.event_id = eventId;
-            const [sub] = await db("subevents").insert(subEvent);
+            const [sub] = await db(tableName.SUBEVENTS).insert(subEvent);
             subEventIds.push(sub);
         }
-        const subEvent = await db("events")
+        const subEvent = await db(tableName.EVENTS)
             .where({ _id: eventId })
             .update({
                 sub_event_items: JSON.stringify(subEventIds),

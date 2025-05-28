@@ -48,6 +48,8 @@ router.post("/organizer/reject", authenticate.verifyToken, authenticate.isAdmin,
 
 router.post("/event/approve-reject", authenticate.verifyToken, authenticate.isAdmin, approval.approveOrRejectEvent)
 
+router.post("/events/create", authenticate.verifyToken, authenticate.isAdmin, fileUploadInstance.middleware(), event.createEvent);
+
 
 router.post("/category/create", authenticate.verifyToken, authenticate.isAdmin, fileUploadInstance.middleware(), category.createCategory);
 router.get("/categories",authenticate.verifyToken,authenticate.isAdmin,category.getAllCategories);

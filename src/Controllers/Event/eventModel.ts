@@ -31,7 +31,6 @@ const isValidEventData = (data: any): data is MainEventInterface => {
   const requiredFields = [
     "name",
     "location",
-    
     "description",
     "longitude",
     "latitude",

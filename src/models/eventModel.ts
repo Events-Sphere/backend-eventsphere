@@ -56,19 +56,18 @@ class EventModel {
 
   private isValidSubEventData = (subEvent: any): subEvent is SubEventInterface => {
     const requiredFields = [
-      "name",
+      "c_code",
       "description",
-      "start_time",
       "end_time",
-      "restrictions",
-      "starting_date",
-      "hostedBy",
       "host_email",
       "host_mobile",
-      "c_code",
+      "hostedBy",
+      "name",
+      "start_time",
+      "starting_date",
+      "ticket_price",
       "ticket_quantity",
       "ticket_type",
-      "ticket_price",
     ];
     for (const field of requiredFields) {
       if (
@@ -271,7 +270,7 @@ class EventModel {
           ticket_type: subEvent.ticket_type,
           ticket_price: subEvent.ticket_price,
           earnings: 0,
-          restrictions: JSON.stringify(subEvent.restrictions),
+          restrictions: "[]" //JSON.stringify(subEvent.restrictions),
         };
         subEventsData.push(subevent);
       }
@@ -309,11 +308,13 @@ class EventModel {
         subEventsData
       );
       console.log("main ebvent ID :" + response.eventId)
+      if(req.user?.role === "organizer") {
       const updateOrganizerEventCount =
         await event.updateOrganizationPendingEvent(
           mainEvents.org_id,
           response.eventId
         );
+      }
       // if (!updateOrganizerEventCount.status) {
       //   console.log(
       //     "call the fn again to update count of the envent and organization pending events as well"
