@@ -35,8 +35,6 @@ app.get("/", async(_, res) => {
 
 
 app.use("/auth", AuthRouter);
-// impement verfytoken here
-//app.use("/api/v1", verifyToken , V1);
 app.use("/api/v1" , V1);
 
 
